@@ -25,7 +25,8 @@ This example creates an object literal, which has multiple tags and multiple key
 
 	{ an-operator (+ 1 5) } // will be evaluated so an-operator = 6
 	{ a-little-program
-		// (LAST) only emits one value (the last one)
+		// (LAST) only emits one value (the last one);
+		//  necessary here but for reasons beyond the scope of this example
 		(LAST 
 			=(var 5) // assign a value to a variable named `var`
 			=(var2 (* var 11))
@@ -49,6 +50,10 @@ This example creates an object literal, which has multiple tags and multiple key
 Losp has Lisp-like operators, lists, and objects. A "Lisp-like operator" means it is enclosed in parentheses and its name (or *symbol*) is listed first, then all arguments to the operator are listed after, with only whitespace between them, no commas.
 
 Native basic data types are `int`, `float`, `bool`, and `string` (and the somewhat special case `null`). As shown above, Losp also supports lists, object literals, and lambdas.
+
+Lists are enclosed in square brackets and object literals are enclosed in double curly brackets. Object literals and operators can have *keyed values*, and keyed values may recursively have keyed values. A keyed value is enclosed in single curly brackets and its naming symbol is listed first.
+
+Lambdas allow for user-defined functions to be created and passed around, with zero or more parameters. Lambda bodies are only evaluated when the lambda is invoked as an operator or by a host app. Lambda must be assigned to a variable to be invoked as an operator.
 
 Host apps can provide *extrinsic* types and can register their own operators.
 
