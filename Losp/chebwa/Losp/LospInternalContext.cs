@@ -73,6 +73,7 @@ namespace chebwa.LospNet
 			StandardOperators["*"] = MathOperator.Instance;
 			StandardOperators["%"] = MathOperator.Instance;
 			StandardOperators["^"] = MathOperator.Instance;
+			StandardOperators["PI"] = new PiOperator();
 
 			// comparison
 			StandardOperators["=="] = ComparisonOperator.Instance;

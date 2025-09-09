@@ -9,6 +9,7 @@ namespace chebwa.LospNet
 	public interface IScriptObject
 	{
 		IEnumerable<string> Keys { get; }
+		LospValue? Get(string key);
 		void Set(string key, LospValue value);
 		bool TryKey(string key, [NotNullWhen(true)] out LospValue? value);
 		bool TryClear(string key);
@@ -41,6 +42,8 @@ namespace chebwa.LospNet
 		}
 
 		public IEnumerable<string> Keys => Map.Keys;
+
+		public LospValue? Get(string key) => Map.TryGetValue(key, out var value) ? value : null;
 
 		public void Set(string key, LospValue value)
 		{
@@ -108,6 +111,12 @@ namespace chebwa.LospNet
 		private readonly Dictionary<string, LambdaProperty> _properties = CreateDict(properties);
 
 		public IEnumerable<string> Keys => _properties.Keys;
+
+		public LospValue? Get(string key)
+		{
+			TryKey(key, out var value);
+			return value;
+		}
 
 		public void Set(string key, LospValue value)
 		{
@@ -201,6 +210,12 @@ namespace chebwa.LospNet
 					}
 				}
 			}
+		}
+
+		public LospValue? Get(string key)
+		{
+			TryKey(key, out var value);
+			return value;
 		}
 
 		public void Set(string key, LospValue value)

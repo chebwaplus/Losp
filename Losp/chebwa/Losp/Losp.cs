@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using chebwa.Losp;
+using System.Diagnostics.CodeAnalysis;
 
 namespace chebwa.LospNet
 {
@@ -162,6 +163,16 @@ namespace chebwa.LospNet
 		public static EvalResult Call(LospLambda func, IEnumerable<LospValue> args)
 		{
 			return _runner.Call(func, args);
+		}
+
+		public static string Write(EvalResult result)
+		{
+			return LospWriter.WriteResult(result);
+		}
+
+		public static string Write(LospValue value, bool underlyingValueOnly = false)
+		{
+			return LospWriter.WriteValue(value, underlyingValueOnly);
 		}
 	}
 }

@@ -1,6 +1,6 @@
 # About Losp
 
-*Losp* is a Lisp-adjacent scripting language with an interpreter written in C#. It has syntactic support for lists and object literals (as such it may be closer to e.g. Clojure). The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
+*Losp* is a Lisp-adjacent scripting language with an interpreter written in C#. It has syntactic support for lists and object literals; as such it may be considered closer to something like Clojure. The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
 
 ## What It Looks Like
 
@@ -60,3 +60,10 @@ Host apps can provide *extrinsic* types and can register their own operators.
 ## More!
 
 Check out [the documentation](docs/using-losp.md)!
+
+## Questions I'd Like to Imagine People Would Ask on Occasion
+
+* **Does Losp have a BNF?**<br />No; Losp is defined using hopes and dreams. If you are particularly motivated to figure one out, you can perhaps look at the token pairs defined in `ASTBuilder` to derive a formal BNF.
+* **REPL?**<br />Not prepackaged, but one shouldn't be too hard to build in your environment of choice by combining `Losp.Eval()` and `Losp.Write()`.
+* **Do you accept contributions?**<br />In theory, yes. In practice, it remains to be seen if I have the bandwidth and attention to keep up with contributions. Losp is unlikely to be a high priority once it is relatively stable.
+  
