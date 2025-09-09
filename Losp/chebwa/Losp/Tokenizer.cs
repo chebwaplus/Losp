@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿// SPDX-License-Identifier: MIT
+
+using System.Globalization;
 
 namespace chebwa.LospNet
 {

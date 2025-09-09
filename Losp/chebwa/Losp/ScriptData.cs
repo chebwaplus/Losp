@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿// SPDX-License-Identifier: MIT
+
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -436,7 +438,7 @@ namespace chebwa.LospNet
 			{
 				return "ScriptData (function type)";
 			}
-			
+
 			// not using `else if` in case list is null for some reason
 			if (Value == null)
 			{

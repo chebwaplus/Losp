@@ -1,4 +1,6 @@
-﻿namespace chebwa.LospNet
+﻿// SPDX-License-Identifier: MIT
+
+namespace chebwa.LospNet
 {
 	public partial class LospRunner
 	{

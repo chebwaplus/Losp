@@ -1,4 +1,6 @@
-﻿namespace chebwa.LospNet.Operators
+﻿// SPDX-License-Identifier: MIT
+
+namespace chebwa.LospNet.Operators
 {
 	public class ForOperator : ISpecialOperator
 	{
@@ -39,7 +41,8 @@
 				{
 					return ValueResult.None();
 				}
-			};
+			}
+
 			EvalResult onDoComplete(LospChildResultDataCollection results)
 			{
 				return new PushResult([sp.SpecialOperatorChildren[0]], onCondComplete);

@@ -1,4 +1,6 @@
-﻿using chebwa.LospNet;
+﻿// SPDX-License-Identifier: MIT
+
+using chebwa.LospNet;
 
 namespace chebwa.Losp.Operators
 {

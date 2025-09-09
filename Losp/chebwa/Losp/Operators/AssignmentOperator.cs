@@ -1,4 +1,6 @@
-﻿namespace chebwa.LospNet.Operators
+﻿// SPDX-License-Identifier: MIT
+
+namespace chebwa.LospNet.Operators
 {
 	//TODO: quiet mode? (i.e. don't emit new value)
 	public class AssignmentOperator : ISpecialOperator

@@ -1,4 +1,4 @@
-﻿using System;
+﻿// SPDX-License-Identifier: MIT
 
 namespace chebwa.LospNet
 {

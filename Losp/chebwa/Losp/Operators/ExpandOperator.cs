@@ -1,4 +1,6 @@
-﻿namespace chebwa.LospNet.Operators
+﻿// SPDX-License-Identifier: MIT
+
+namespace chebwa.LospNet.Operators
 {
 	/// <summary>
 	/// Expands and flattens any list in the child results and emits each item as part

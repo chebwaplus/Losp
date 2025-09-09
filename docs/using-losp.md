@@ -438,8 +438,92 @@ For emphasis, it will again be noted that *completing an `AsyncResult` with anot
 
 #### Emitting Values
 
-... TODO (discuss emitting multiple values)
+Just as an operator is free to emit *no* values, it is also free to emit *more than one*. Let's take `(RUN)` as an example. It is a simple container operator that forwards all of its child values without transforming them in any way.
+
+Let's look at two examples and their results.
+
+```
+< [(RUN)]
+> []
+
+< [(RUN 1 2 3)]
+> [1 2 3]
+```
+
+In both cases, even though the list only had one child expression, it ended up with a number of elements that *was not 1*.
+
+`(RUN)`, as an operator, does nothing more than call `ValueResult.MultipleOrNone(children)`, passing along the result collection that it is given. The evaluator takes all the values in the `ValueResult` and adds them to the result collection of the parent node. In each example above, the parent node is a list. As we can see, the evaluator does *not* bundle them up into a list.
+
+Anticipating that sometimes this is undesirable, Losp has a few operators to help. `(COLLAPSE)` will take all of its children and bundle them up into a list. This is equivalent to wrapping a node in a list.
+
+```
+< [(COLLAPSE (RUN 1 2 3))]
+> [[1 2 3]]
+
+< [[(RUN 1 2 3)]]
+> [[1 2 3]]
+```
+
+`(EXPAND)` goes the other way, and explodes one or more lists into individual values.
+
+```
+< [(EXPAND [1 2 3])]
+> [1 2 3]
+```
+
+`(LAST)` does perhaps the obvious thing and returns the last emitted value; if no values where emitted, it also emits no value.
+
+```
+< [(LAST (RUN 1 2 3))]
+> [3]
+```
+
+The API also provides some options: `ValueResult` provides a `FirstOrDefault()` method and a `LastOrDefault()` method. One can also wrap up the values using `ValueResult.MultipleOrNone(result.Values)`.
+
+Perhaps you are wondering: why are they called `SingleOrNone()` and `MultipleOrNone()`, and not just `Single()` and `Multiple()`? This is to emphasize that these functions can still drop back to `None()` in certain circumstances. If `SingleOrNone()` is called with a `null`, it will fall back to `None()`. If `MultipleOrNone()` is called with a `null`, or with an empty list, it will fall back to `None()`.
+
+`ValueResult` needs to ensure that when its type is `ResultType.SuccessEmit`, there is in fact at least one value in its list. Code and logic errors that result in unexpected `null` values, or in lists that are unexpectedly empty, have to be accounted for. Losp *may*, in the future, support a flag for a more strict evaluation model that will throw an error instead, but currently the model is to be as relaxed in these cases.
+
+> As a point of clarification, calling `SingleOrNone(null)` is equivalent to `None()` and no value will be emitted, whereas calling `SingleOrNone(new LospNull())` will emit the value as expected. `LospNull` is a valid `LospValue` type. `null` is just `null`, in C# land anyway.
 
 ### `ISpecialOperator`
 
-... TODO
+Special operators enhance operators by effectively giving them a pre-evaluation step that happens as the AST is being built.
+
+`ISpecialOperator` adds a `Prepare()` method to the `IScriptOperator` interface. `Prepare()` takes a `LospOperatorNode`--which is the completed node describing the operator (all descendant nodes have been completed as well)--and returns a `LospSpecialOperatorNode`.
+
+The special operator handler has free rein to inspect the correctness of the operator node and to transform the shape of the operator node and its branches before the node is evaluated.
+
+#### `SpecialOperatorChildren`
+
+Let's consider the `IF()` node.
+
+```
+< IF((? true) 1 0)
+> 1
+
+< IF((? false) 1 0)
+> 0
+```
+
+For a normal operator, we might expected 2 or perhaps 3 values to be emitted (depending on what the mysterious `(?)` operator does). But that isn't the case; only ony value is emitted. That is because the `IF()` operator *removes both the "true" branch and the "false" branch* from the normal evaluation flow. The evaluator only sees this at first:
+
+```
+IF((? true))
+```
+
+It does this by moving those two child nodes to the `SpecialOperatorChildren` collection that is available to `LospSpecialOperatorNode`s. It mirrors the `Children` collection that is available to all `LospOperatorNode`s except that it is invisible to the evaluator.
+
+The `IF()` operator handler moves the conditional node (the `(?)`, its first chlid node) to the `LospSpecialOperatorNode`'s `Children` collection as normal, and it is evaluated by the evaluator as normal. When the evaluator calls the `IF()` handlers `Run()` method, the result of the `(?)` is ready to go.
+
+#### PushResult
+
+But clearly the `IF()` isn't done. Both "true" and "false" branches are still unevaluated, and hidden away. Before the `IF()` can emit a result, it must present the correct child node to the evaluator and get a result back.
+
+As alluded to back under [Return Results](#return-results), there is one more `EvalResult` type available to operators. It is the `PushResult`. This provides a means for an operator to give the evaluator more nodes to evaluate. `PushResult` of course also accepts an `OnComplete` callback that the handler can use to receive the results.
+
+Unlike with `AsyncResult`, an operator is free to follow up a `PushResult` with any kind of `EvalResult`, including another `PushResult`. An operator may (but very much shouldn't) continually return `PushResult`s. In fact, this is how a loop like `FOR()` works; in turn, the loop condition is pushed, and--if the condition is true--the loop body is pushed, followed by the condition again, and so on. Much like any other sort of native loop, if a Losp loop doesn't complete, the host app is in for a bad time.
+
+Although `PushResult` is available in standard operator contexts, it is typically not useful. For a standard operator, all of its children have already been evaluated by the time `Run()` is called.
+
+A `PushResult` is treated synchronously as long as all of its nodes are synchronous. Any asynchronicity is handled internally, however; the `OnComplete` callback will only be called when the evaluation is complete, either asychronously or asynchronously. In fact, the only result `OnComplete` will receive is a `ValueResult`; all other types are handled internally.

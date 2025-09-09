@@ -1,4 +1,6 @@
-﻿namespace chebwa.LospNet.Operators
+﻿// SPDX-License-Identifier: MIT
+
+namespace chebwa.LospNet.Operators
 {
 	public class AllOperator() : IScriptOperator
 	{

@@ -1,4 +1,6 @@
-﻿using chebwa.LospNet;
+﻿// SPDX-License-Identifier: MIT
+
+using chebwa.LospNet;
 using System.Text;
 
 namespace chebwa.Losp
@@ -228,7 +230,7 @@ namespace chebwa.Losp
 		private static readonly List<(List<string> List, bool Used)> _reusableStringLists = [];
 		private static List<string> BorrowList()
 		{
-			for (var i = 0; i  < _reusableStringLists.Count; i++)
+			for (var i = 0; i < _reusableStringLists.Count; i++)
 			{
 				if (!_reusableStringLists[i].Used)
 				{

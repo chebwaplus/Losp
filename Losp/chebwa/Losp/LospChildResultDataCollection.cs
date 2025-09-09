@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿// SPDX-License-Identifier: MIT
+
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
 namespace chebwa.LospNet
