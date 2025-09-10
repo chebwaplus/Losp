@@ -72,7 +72,7 @@ namespace chebwa.LospNet.Operators
 						return result;
 					}
 
-					return ErrorResultHelper.IdNotFound(id);
+					return ErrorResultHelper.VarIdNotFound(id);
 				}
 
 				return new ErrorResult(op, "inc/dec operator: expected an identifier node");
@@ -90,7 +90,7 @@ namespace chebwa.LospNet.Operators
 
 		private static EvalResult ApplyOp(LospSpecialOperatorNode sp, LospValue val)
 		{
-			if (val.TryGetValue<int>(out var intVal))
+			if (val.TryGet<int>(out var intVal))
 			{
 				if (sp.NodeId == LospInternalContext.LospIncOpName)
 				{
@@ -103,7 +103,7 @@ namespace chebwa.LospNet.Operators
 
 				return ValueResult.SingleOrNone(intVal);
 			}
-			else if (val.TryGetValue<float>(out var floatVal))
+			else if (val.TryGet<float>(out var floatVal))
 			{
 				if (sp.NodeId == LospInternalContext.LospIncOpName)
 				{

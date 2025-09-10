@@ -236,7 +236,7 @@ namespace chebwa.LospNet
 						}
 						else
 						{
-							top.OnComplete(ErrorResultHelper.IdNotFound(id));
+							top.OnComplete(ErrorResultHelper.VarIdNotFound(id));
 						}
 					}
 					/***************************

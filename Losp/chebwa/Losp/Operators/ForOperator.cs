@@ -33,7 +33,7 @@ namespace chebwa.LospNet.Operators
 
 			EvalResult onCondComplete(LospChildResultDataCollection results)
 			{
-				if (results[0].TryGetValue<bool>(out var res) && res)
+				if (results[0].TryGet<bool>(out var res) && res)
 				{
 					return new PushResult([sp.SpecialOperatorChildren[1]], onDoComplete);
 				}

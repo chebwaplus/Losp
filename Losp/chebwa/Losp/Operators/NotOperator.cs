@@ -21,7 +21,7 @@ namespace chebwa.LospNet.Operators
 			}
 			else if (children.TryKey("~", out var coerceVal))
 			{
-				if (!coerceVal.TryGetValue(out coerce))
+				if (!coerceVal.TryGet(out coerce))
 				{
 					coerce = false;
 				}

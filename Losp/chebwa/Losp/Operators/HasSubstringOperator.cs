@@ -32,11 +32,11 @@ namespace chebwa.LospNet.Operators
 				return new ErrorResult(@operator, "substring operator: arguments must be non-null strings");
 			}
 
-			if (children.TryKey(CaseKeyName, out var comp) && comp.TryGetValue<bool>(out var useCase))
+			if (children.TryKey(CaseKeyName, out var comp) && comp.TryGet<bool>(out var useCase))
 			{
 				compare = useCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 			}
-			else if (children.TryKey(IgnoreCaseKeyName, out var ign) && ign.TryGetValue<bool>(out var ignoreCase))
+			else if (children.TryKey(IgnoreCaseKeyName, out var ign) && ign.TryGet<bool>(out var ignoreCase))
 			{
 				compare = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 			}

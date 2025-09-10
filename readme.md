@@ -53,7 +53,7 @@ Native basic data types are `int`, `float`, `bool`, and `string` (and the somewh
 
 Lists are enclosed in square brackets and object literals are enclosed in double curly brackets. Object literals and operators can have *keyed values*, and keyed values may recursively have keyed values. A keyed value is enclosed in single curly brackets and its naming symbol is listed first.
 
-Lambdas allow for user-defined functions to be created and passed around, with zero or more parameters. Lambda bodies are only evaluated when the lambda is invoked as an operator or by a host app. Lambda must be assigned to a variable to be invoked as an operator.
+Lambdas allow for user-defined functions to be created and passed around, with zero or more parameters. Lambda bodies are only evaluated when the lambda is invoked as or by an operator or by a host app. Lambdas must be assigned to a variable to be invoked as an operator.
 
 Host apps can provide *extrinsic* types and can register their own operators.
 

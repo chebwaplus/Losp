@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace chebwa.LospNet
 {
+	public class SyntaxException(string message) : Exception(message);
+
 	// high-level process:
 	//
 	// whenever the parser finds certain token types, it enters a corresponding state.
@@ -134,7 +136,7 @@ namespace chebwa.LospNet
 					var errorToken = tokens[i];
 					var errorArea = GetSubstringNear(errorToken.Input, errorToken.TokenStart);
 
-					throw new Exception($"invalid input at char {errorToken.TokenStart} (`{errorToken.Raw()}`): ...{errorArea}...\n"
+					throw new SyntaxException($"invalid input at char {errorToken.TokenStart} (`{errorToken.Raw()}`): ...{errorArea}...\n"
 						+ $"state: {curState}; previous: {tokenPrev}; current: {tokenCurr}");
 				}
 
@@ -270,11 +272,11 @@ namespace chebwa.LospNet
 
 								if (funcProto!.Children!.Count < 2)
 								{
-									throw new Exception("a function definition requires at least two child nodes: one paramater list and at least one node as the body");
+									throw new SyntaxException("a function definition requires at least two child nodes: one paramater list and at least one node as the body");
 								}
 								if (funcProto.Children[0] is not LospListNode paramList)
 								{
-									throw new Exception("a function definition MUST have a list as its first child node");
+									throw new SyntaxException("a function definition MUST have a list as its first child node");
 								}
 
 								var func = new LospFunctionNode()
@@ -406,7 +408,7 @@ namespace chebwa.LospNet
 
 			if (states.Count > 0)
 			{
-				throw new Exception("invalid input: opening paren/bracket count is larger than the closing paren/bracket count");
+				throw new SyntaxException("invalid input: opening paren/bracket count is larger than the closing paren/bracket count");
 			}
 
 			return top.Children.Count == 1 ? top.Children[0] : top;

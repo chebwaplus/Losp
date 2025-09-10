@@ -184,9 +184,9 @@ namespace chebwa.LospNet
 	/// <para>
 	/// When an <see cref="AsyncResult"/> is returned, its <see cref="Source"/> provides
 	/// a callback hook (<see cref="IAsyncProxy.OnAsyncCompleted(Action{EvalResult})"/>)
-	/// that should be used to handle the final evaluation result.
+	/// that should be used to receive the final evaluation result.
 	/// <see cref="OnAsyncCompleted(Action{EvalResult})"/> can be called on the
-	/// <see cref="AsyncResult"/> directly as well; it simply forwards the callback to
+	/// <see cref="AsyncResult"/> directly instead; it simply forwards the callback to
 	/// the <see cref="Source"/>.
 	/// </para>
 	/// <para>
@@ -198,7 +198,7 @@ namespace chebwa.LospNet
 	/// then that result and all further asynchronous evaluations are wrapped up in a
 	/// single top-level <see cref="AsyncResult"/>; the top-level <see cref="AsyncResult"/>
 	/// can only be resolved with a <see cref="ValueResult"/> or an
-	/// <see cref="ErrorResult"/>. (In other words, end users do not need to handle
+	/// <see cref="ErrorResult"/>. (In other words, callbacks do not need to handle
 	/// cases of recursive <see cref="AsyncResult"/>s.)
 	/// </para>
 	/// </summary>
@@ -206,6 +206,12 @@ namespace chebwa.LospNet
 	/// the final evaluated result of the expression.</param>
 	public record AsyncResult(IAsyncProxy Source) : EvalResult(ResultType.Async)
 	{
+		/// <summary>
+		/// Registers the <paramref name="callback"/> to be invoked once all asynchronous
+		/// processes are completed. See the <see cref="AsyncResult"/> documentation for
+		/// more details.
+		/// </summary>
+		/// <param name="callback">The delegate to call when a result is available.</param>
 		public void OnAsyncCompleted(Action<EvalResult> callback)
 		{
 			Source.OnAsyncCompleted(callback);

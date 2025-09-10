@@ -36,7 +36,7 @@ namespace chebwa.LospNet.Operators
 			}
 
 			//TODO: what would be the child results?
-			if (children[0].TryGetValue<bool>(out var cond) && cond)
+			if (children[0].TryGet<bool>(out var cond) && cond)
 			{
 				return new PushResult([sp.SpecialOperatorChildren[0]], res => ValueResult.MultipleOrNone(res));
 			}

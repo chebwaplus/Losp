@@ -53,6 +53,10 @@ namespace chebwa.LospNet
 		void SetVar(string varName, LospValue value);
 	}
 
+	/// <summary>
+	/// The main interface with the Losp scripting library. It provides means to parse,
+	/// evaluate, and write (as output) various elements of the Losp.
+	/// </summary>
 	public class Losp
 	{
 		// high-level process:
@@ -79,14 +83,46 @@ namespace chebwa.LospNet
 
 		public static readonly Dictionary<string, IScriptOperator> Operators = [];
 
+		/// <summary>
+		/// The list of all natively supported Losp standard operator names.
+		/// </summary>
+		public static IReadOnlyCollection<string> NativeStandardOperators => LospInternalContext.StandardOperators.Keys;
+		/// <summary>
+		/// <para>
+		/// The list of all natively supported Losp special operator names.
+		/// </para>
+		/// <para>
+		/// Note that special operators have a prefix which is ignored for the purposes
+		/// of matching an operator name to a handler.
+		/// </para>
+		/// </summary>
+		public static IReadOnlyCollection<string> NativeSpecialOperators => LospInternalContext.SpecialOperators.Keys;
+
+		/// <summary>
+		/// Registers a standard operator handler to the <paramref name="operatorName"/>.
+		/// Host apps may override native standard operator handlers, but appropriate
+		/// caution must be exercised.
+		/// </summary>
+		/// <param name="operatorName">The name of the operator.</param>
+		/// <param name="op">The handler invoked to perform the operator.</param>
 		public static void AddOperator(string operatorName, IScriptOperator op)
 		{
 			ArgumentException.ThrowIfNullOrEmpty(operatorName, nameof(operatorName));
 			ArgumentNullException.ThrowIfNull(op, nameof(op));
 
+			//TODO: indicate an error is op name starts with "LOSP:"?
+
 			Operators[operatorName] = op;
 		}
 
+		//TODO: register special handlers; enforce that the op name begins with "$"
+
+		/// <summary>
+		/// Attempts to retrieve the handler for a special operator by its
+		/// <paramref name="opName"/>.
+		/// </summary>
+		/// <param name="opName">The name of the special operator.</param>
+		/// <param name="op">The handlers for the special operator, if any.</param>
 		public static bool TryGetSpecialOperator(string opName, [NotNullWhen(true)] out ISpecialOperator? op)
 		{
 			if (opName == null)
@@ -98,6 +134,14 @@ namespace chebwa.LospNet
 			return LospInternalContext.SpecialOperators.TryGetValue(opName, out op);
 		}
 
+		/// <summary>
+		/// Attempts to retrieve the handler for a standard or special operator by its
+		/// <paramref name="opName"/>. Special operators are checked first, then standard
+		/// operators. For standard operators, handlers registered by the host app are
+		/// checked before native handlers.
+		/// </summary>
+		/// <param name="opName">The name of the operator.</param>
+		/// <param name="op">The handlers for the operator, if any.</param>
 		public static bool TryGetOperator(string opName, [NotNullWhen(true)] out IScriptOperator? op)
 		{
 			if (opName == null)
@@ -106,15 +150,16 @@ namespace chebwa.LospNet
 				return false;
 			}
 
-			// don't allow important namespaced operators to be overridden
+			// handles special operators, which cannot be overridden by a host app
 			if (opName.StartsWith("LOSP:SP:"))
 			{
 				var result = LospInternalContext.SpecialOperators.TryGetValue(opName, out var sp);
 				op = sp;
 				return result;
 			}
+			// handles namespaced standard operators that should not be overridden by a host app
 			else if (opName.StartsWith("LOSP:"))
-			{
+			{ 
 				return LospInternalContext.StandardOperators.TryGetValue(opName, out op);
 			}
 			else
@@ -130,12 +175,32 @@ namespace chebwa.LospNet
 
 		#region vars
 
+		/// <summary>
+		/// Attempts to retrieve the <see cref="LospValue"/> globally associated with the
+		/// <paramref name="varName"/>.
+		/// </summary>
+		/// <param name="varName">The name of the variable to check.</param>
+		/// <param name="value">The retrieved <see cref="LospValue"/>, if any.</param>
+		/// <returns>A value indicating whether the <paramref name="value"/> was
+		/// successfully retreived.</returns>
+		//TOOD: reword <returns>?
 		public static bool TryGetGlobalVar(string varName, [NotNullWhen(true)] out LospValue? value)
 		{
 			return _runner.TryGetVar(varName, out value);
 		}
+		/// <summary>
+		/// Attempts to associate the <paramref name="value"/> globally with the
+		/// <paramref name="varName"/>. The association persists across all invocations
+		/// of the evaluator. Global variables can be accessed from any script as long
+		/// there does not exist a more locally-scoped variable defined with the same
+		/// <paramref name="varName"/>.
+		/// </summary>
+		/// <param name="varName">The name of the variable to set.</param>
+		/// <param name="value">The value to associated with the <paramref name="varName"/>.</param>
+		/// <exception cref="ArgumentNullException"></exception>
 		public static void SetGlobalVar(string varName, LospValue value)
 		{
+			ArgumentNullException.ThrowIfNull(value, nameof(value));
 			_runner.SetVar(varName, value);
 		}
 
@@ -146,32 +211,96 @@ namespace chebwa.LospNet
 		/// that can be passed to <see cref="Eval(LospNode)"/> to be evaluated.
 		/// </summary>
 		/// <param name="input">The Losp script source.</param>
+		/// <exception cref="SyntaxException">The parser was unable to build an AST from the input.</exception>
 		public static LospNode Parse(string input)
 		{
 			return ASTBuilder.BuildAST(Tokenizer.Tokenize(input));
 		}
 
+		/// <summary>
+		/// Parses the input Losp script (by invoking <see cref="Parse(string)"/>) and
+		/// evaluates the returned AST (by invoking <see cref="Eval(LospNode)"/>).
+		/// </summary>
+		/// <param name="input">The Losp script source.</param>
+		/// <returns>The result of evaluating the parsed input.</returns>
 		public static EvalResult Eval(string input)
 		{
 			return Eval(Parse(input));
 		}
 
 		private static readonly LospRunner _runner = new();
+		/// <summary>
+		/// Evaluates the AST represented by the <paramref name="root"/>. Returned
+		/// <see cref="EvalResult"/> types are:
+		/// <list type="bullet">
+		/// <item><see cref="ValueResult"/> - the evaluation was successful the
+		/// <paramref name="root"/> emitted zero or more values</item>
+		/// <item><see cref="AsyncResult"/> - the evaluation is pending one or
+		/// more asynchronous operations and the host must register a callback
+		/// to receive the result</item>
+		/// <item><see cref="ErrorResult"/> - the evaluator was unable to
+		/// evaluate the script due to a specified error</item>
+		/// </list>
+		/// </summary>
+		/// <param name="root">The root or subtree of the AST to evaluate.</param>
+		/// <returns>The result of evaluating <paramref name="root"/> and its AST.</returns>
 		public static EvalResult Eval(LospNode root)
 		{
 			return _runner.Eval(root);
 		}
 
-		public static EvalResult Call(LospLambda func, IEnumerable<LospValue> args)
+		/// <summary>
+		/// Invokes a Losp lambda with the provided arguments.
+		/// </summary>
+		/// <param name="lambda">The Losp lambda to invoke and evaluate.</param>
+		/// <param name="args">The collection of zero or more arguments to pass to the
+		/// <paramref name="lambda"/>.</param>
+		/// <returns>The result of evaluating the <paramref name="lambda"/>.</returns>
+		public static EvalResult Call(LospLambda lambda, IEnumerable<LospValue> args)
 		{
-			return _runner.Call(func, args);
+			return _runner.Call(lambda, args);
 		}
 
-		public static string Write(EvalResult result)
+		/// <summary>
+		/// Prints the AST represented by the <paramref name="node"/>. If the AST
+		/// was built from the Losp parser, any <see cref="LospOperatorNode"/>s that
+		/// are special operators have already been invoked to transform their nodes;
+		/// as such, the output may not directly mirror the source script.
+		/// </summary>
+		/// <param name="node">The <see cref="LospNode"/> describing the root
+		/// or subtree of an AST.</param>
+		/// <returns>A stringified version of <paramref name="node"/> and its AST.</returns>
+		public static string Write(LospNode node)
 		{
-			return LospWriter.WriteResult(result);
+			return LospWriter.WriteNode(node).ToString();
 		}
 
+		/// <summary>
+		/// Prints an <see cref="EvalResult"/> as a string intended to be used e.g. as
+		/// output to a REPL. For a <see cref="ValueResult"/>, the verbosity of the
+		/// printed values is controlled by <paramref name="underlyingValueOnly"/>.
+		/// </summary>
+		/// <param name="result">The result type to print.</param>
+		/// <param name="underlyingValueOnly">When printing <see cref="LospValue"/>s,
+		/// determines whether it value is annotated with its type. When <see langword="true"/>,
+		/// the <see cref="LospValue"/>'s underlying value is printed with no type
+		/// annotation.</param>
+		/// <returns>The <paramref name="result"/> as a string.</returns>
+		public static string Write(EvalResult result, bool underlyingValueOnly = false)
+		{
+			return LospWriter.WriteResult(result, underlyingValueOnly);
+		}
+
+		/// <summary>
+		/// Prints a <see cref="LospValue"/> as a string intended to be used e.g. as
+		/// output to a REPL. The verbosity of the printed value (and any nested values)
+		/// is controlled by <paramref name="underlyingValueOnly"/>.
+		/// </summary>
+		/// <param name="value">The value to print.</param>
+		/// <param name="underlyingValueOnly">Determines whether the output is annotated
+		/// with types. When <see langword="true"/>, the <paramref name="value"/> and any
+		/// nested values are printed with no type annotation.</param>
+		/// <returns>The <paramref name="value"/> as a string.</returns>
 		public static string Write(LospValue value, bool underlyingValueOnly = false)
 		{
 			return LospWriter.WriteValue(value, underlyingValueOnly);
