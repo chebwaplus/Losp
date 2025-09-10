@@ -65,7 +65,7 @@ Symbols are bare strings (not enclosed in quotes or backticks) that in general f
 * is not a reserved name
 * cannot evaluate as a literal
 
-Otherwise, symbols can include almost any character, including dahses, underscores, commas, colons, and semicolons. `-_,:;` is a legal symbol. Symbols are used as operator names, key names, and as variable names.
+Otherwise, symbols can include almost any character, including dashes, underscores, commas, colons, and semicolons. `-_,:;` is a legal symbol. Symbols are used as operator names, key names, and as variable names.
 
 When a symbol is not used as an operator or key name, the interpreter will treat the symbol as a variable and attempt to look up the value associated with it; if none is found, it will generate an error.
 
