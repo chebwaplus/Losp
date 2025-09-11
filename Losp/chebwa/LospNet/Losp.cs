@@ -356,6 +356,22 @@ namespace chebwa.LospNet
 		}
 
 		/// <summary>
+		/// Prints an <see cref="LospResult"/> as a string intended to be used e.g. as
+		/// output to a REPL. For a <see cref="LospValueResult"/>, the verbosity of the
+		/// printed values is controlled by <paramref name="underlyingValueOnly"/>.
+		/// </summary>
+		/// <param name="result">The result type to print.</param>
+		/// <param name="underlyingValueOnly">When printing <see cref="LospValue"/>s,
+		/// determines whether it value is annotated with its type. When <see langword="true"/>,
+		/// the <see cref="LospValue"/>'s underlying value is printed with no type
+		/// annotation.</param>
+		/// <returns>The <paramref name="result"/> as a string.</returns>
+		public static string Write(LospResult result, bool underlyingValueOnly = false)
+		{
+			return LospWriter.WriteResult(result, underlyingValueOnly);
+		}
+
+		/// <summary>
 		/// Prints an <see cref="EvalResult"/> as a string intended to be used e.g. as
 		/// output to a REPL. For a <see cref="ValueResult"/>, the verbosity of the
 		/// printed values is controlled by <paramref name="underlyingValueOnly"/>.

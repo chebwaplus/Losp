@@ -181,6 +181,45 @@ namespace chebwa.Losp
 		}
 
 		/// <summary>
+		/// Prints an <see cref="LospResult"/> as a string intended to be used e.g. as
+		/// output to a REPL. For a <see cref="ValueResult"/>, the verbosity of the
+		/// printed values is controlled by <paramref name="underlyingValueOnly"/>.
+		/// </summary>
+		/// <param name="result">The result type to print.</param>
+		/// <param name="underlyingValueOnly">When printing <see cref="LospValue"/>s,
+		/// determines whether it value is annotated with its type. When <see langword="true"/>,
+		/// the <see cref="LospValue"/>'s underlying value is printed with no type
+		/// annotation.</param>
+		/// <returns>The <paramref name="result"/> as a string.</returns>
+		public static string WriteResult(LospResult result, bool underlyingValueOnly)
+		{
+			switch (result)
+			{
+				case LospErrorResult er:
+					var str = (er.Source is LospOperatorNode op ? op.NodeId + ": " : string.Empty) + er.Message;
+					return "<error: " + str + ">";
+				case LospAsyncResult:
+					return "<async>";
+				case LospValueResult vr:
+					if (vr.Type == ResultType.SuccessNoEmit)
+					{
+						return "<success>";
+					}
+					else
+					{
+						var list = vr.Values.ToList();
+						if (list.Count == 1)
+						{
+							return WriteValue(list[0], underlyingValueOnly);
+						}
+						return "[" + string.Join(", ", vr.Values.Select(v => WriteValue(v, underlyingValueOnly))) + "]";
+					}
+				default:
+					return $"<unexpected result type: {result.Type}>";
+			}
+		}
+
+		/// <summary>
 		/// Prints an <see cref="EvalResult"/> as a string intended to be used e.g. as
 		/// output to a REPL. For a <see cref="ValueResult"/>, the verbosity of the
 		/// printed values is controlled by <paramref name="underlyingValueOnly"/>.
