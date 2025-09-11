@@ -61,10 +61,6 @@ Host apps can provide *extrinsic* types and can register their own operators.
 
 Check out [the documentation](docs/using-losp.md)!
 
-## But why?
-
-Check out [the documentation](docs/why-losp.md)?
-
 ## Questions I'd Like to Imagine People Would Ask on Occasion
 
 * **Does Losp have a BNF?**<br />No; Losp is defined using hopes and dreams. If you are particularly motivated to figure one out, you can perhaps look at the token pairs defined in `ASTBuilder` to derive a formal BNF.

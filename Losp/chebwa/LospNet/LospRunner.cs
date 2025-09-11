@@ -19,7 +19,7 @@ namespace chebwa.LospNet
 			Vars.SetVar(varName, value);
 		}
 
-		public EvalResult Eval(LospNode node)
+		public LospResult Eval(LospNode node)
 		{
 			var internalRunner = new LospRunnerInternal();
 			var result = internalRunner.Eval(node, new(Vars));
@@ -31,10 +31,17 @@ namespace chebwa.LospNet
 					_runningIntRunners.Remove(internalRunner);
 				});
 			}
-			return result;
+
+			return result switch
+			{
+				ValueResult vr => new LospValueResult(vr),
+				ErrorResult er => new LospErrorResult(er),
+				AsyncResult arr => new LospAsyncResult(arr),
+				_ => new LospErrorResult(new(null, "unexpected result type: " + result.GetType().Name)),
+			};
 		}
 
-		public EvalResult Call(LospLambda func, IEnumerable<LospValue> args)
+		public LospResult Call(LospLambda func, IEnumerable<LospValue> args)
 		{
 			var internalRunner = new LospRunnerInternal();
 			var result = internalRunner.Call(func, args, new(Vars));
@@ -46,7 +53,14 @@ namespace chebwa.LospNet
 					_runningIntRunners.Remove(internalRunner);
 				});
 			}
-			return result;
+
+			return result switch
+			{
+				ValueResult vr => new LospValueResult(vr),
+				ErrorResult er => new LospErrorResult(er),
+				AsyncResult arr => new LospAsyncResult(arr),
+				_ => new LospErrorResult(new(null, "unexpected result type: " + result.GetType().Name)),
+			};
 		}
 
 		public class ScriptVarContext(ScriptVarContext? parent = null) : IScriptContext

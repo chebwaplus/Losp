@@ -260,13 +260,17 @@ var result = Losp.Eval(ast);
 
 `Losp.Parse()` will throw an exception if the source string cannot be parsed.
 
-Evaluating a Losp expression can result in three `EvalResult` types: `ValueResult`, `AsyncResult`, and `ErrorResult`.
+Evaluating a Losp expression can result in three `EvalResult` types: `LospValueResult`, `LospAsyncResult`, and `LospErrorResult`.
 
-To get it out of the way first, an `ErrorResult` will be returned if there is an evaluation error (e.g. the arguments to an operator were not of the correct type, or a symbol could not be resolved). If `Losp.Eval()` is called with a source string, any exception is caught and wrapped in an `ErrorResult`.
+To get it out of the way first, an `LospErrorResult` will be returned if there is an evaluation error (e.g. the arguments to an operator were not of the correct type, or a symbol could not be resolved). If `Losp.Eval()` is called with a source string, any exception is caught and wrapped in an `LospErrorResult`.
 
-### ValueResult
+### Async Evaluation
 
-A `ValueResult` means the expression was evaluated successfully (and synchronously). However, expressions can emit *zero or more* values when evaluated.
+If you can allow for `await/async`, you can use `Losp.EvalAsync()`. One benefit of the async method is that it will only be resolved with `LospValueResult` or `LospErrorResult`; `LospAsyncResult` results are handled for you.
+
+### LospValueResult
+
+A `LospValueResult` means the expression was evaluated successfully (and synchronously). However, expressions can emit *zero or more* values when evaluated.
 
 Literals and data structures will always emit a single value.
 
@@ -290,7 +294,7 @@ Operators can emit zero or more values; this is dependent both on the operator a
 > <success>
 ```
 
-You can check if a `ValueResult` emitted a value by checking its `Type`.
+You can check if a `LospValueResult` emitted a value by checking its `Type`.
 
 ```csharp
 if (valueResult.Type == ResultType.SuccessNoEmit)
@@ -312,13 +316,15 @@ foreach (var value in valueResult.Values)
 }
 ```
 
-### AsyncResult
+### LospAsyncResult
 
-In contrast to a `ValueResult`, an `AsyncResult` indicates that the operator must perform an asynchronous process before it can emit a value. An `AsyncResult` provides a `Source` member that implements an `OnAsyncCompleted()` callback hook. The `AsyncResult` provides this hook as well for convenience.
+In contrast to a `LospValueResult`, a `LospAsyncResult` indicates that the operator must perform an asynchronous process before it can emit a value. A `LospAsyncResult` provides an  `OnAsyncCompleted()` callback hook.
 
-When a callback is passed to `OnAsyncCompleted()`, it is triggered with the final, evaluated `ValueResult` of the expression or with an `ErrorResult`. An `AsyncResult` *cannot* resolve with another `AsyncResult`. This is enforced at all levels of the interpreter, and is particularly true at the top level, as invoked by the host app.
+When a callback is passed to `OnAsyncCompleted()`, it is triggered with the final, evaluated `LospValueResult` of the expression or with an `LospErrorResult`. A `LospAsyncResult` *cannot* resolve with another `LospAsyncResult`.
 
-To emphasize the consequence of this: if mulitple operators in a Losp script trigger an `AsyncResult`, only one top-level `AsyncResult` is emitted to the host app. All asynchronous operators are handled internally and fully resolved before the top-level `AsyncResult` is resolved.
+To emphasize the consequence of this: if multiple operators in a Losp script trigger an `AsyncResult`\*, only one top-level `LospAsyncResult` is emitted to the host app. All asynchronous operators are handled internally and fully resolved before the top-level `LospAsyncResult` is resolved.
+
+> \* `AsyncResult` is the internal equivalent to `LospAsyncResult`.
 
 ## Losp Values
 
@@ -349,7 +355,7 @@ if (value is LospValue<int> i)
 }
 ```
 
-One can also use pattern matching in a `switch` expression.
+You can also use pattern matching in a `switch` expression.
 
 ```csharp
 return value switch {
@@ -360,7 +366,7 @@ return value switch {
 };
 ```
 
-For more complex scenarios (for example, you want a base class type but the extrinsic is a subclass type, or vice versa), one can use `TryGet()` for all types or `TryGetNonNull()` for reference types. `LospValue` has several helper methods for retrieving specific underlying types.
+For more complex scenarios (for example, you want a base class type but the extrinsic is a subclass type, or vice versa), you can use `TryGet()` for all types or `TryGetNonNull()` for reference types. `LospValue` has several helper methods for retrieving specific underlying types.
 
 ```csharp
 public class Monster() : Creature();
@@ -422,9 +428,15 @@ Also look at `ErrorResultHelper` for some standard error messages regarding unsu
 
 #### Return Results
 
+Internally, within the evaluation process, `EvalResult` types are used instead of `LospResult` types. `LospResult` and its subclasses are only used at the top level. Each `LospResult` type discussed so far is analogous to an `EvalResult` type:
+
+* `LospValueResult` => `ValueResult`
+* `LospErrorResult` => `ErrorResult`
+* `LospAsyncResult` => `AsyncResult`
+
 As described in [Parsing and Evaluating](#parsing-and-evaluating), an operator can return one of multiple `EvalResult` types. When implementing `IScriptOperator`, it is your responsibility to return the correct type. Typically this is straightforward.
 
-One cannot instantiate a `ValueResult` using `new ValueResult()`. Instead, `ValueResult` has several static methods that instantiate a result. One can use `new ErrorResult()` or `new AsyncResult()`, however.
+`ValueResult` cannot be instantiated using `new ValueResult()`. Instead, `ValueResult` has several static methods that instantiate a result. You can use `new ErrorResult()` or `new AsyncResult()`, however.
 
 An operator does not *have* to emit a value, although typically it will. Some operators can simply do a task and note if the task succeeded or failed. In the former case, they can use `ValueResult.None()` to indicate that they succeeded without emitting a value. In the latter case, an `ErrorResult` would be used as usual. To emit one or more values, see below.
 
@@ -478,7 +490,7 @@ Anticipating that sometimes this is undesirable, Losp has a few operators to hel
 > [3]
 ```
 
-The API also provides some options: `ValueResult` provides a `FirstOrDefault()` method and a `LastOrDefault()` method. One can also wrap up the values using `ValueResult.MultipleOrNone(result.Values)`.
+The API also provides some options: `ValueResult` provides a `FirstOrDefault()` method and a `LastOrDefault()` method. You can also wrap up the values using `ValueResult.MultipleOrNone(result.Values)`.
 
 Perhaps you are wondering: why are they called `SingleOrNone()` and `MultipleOrNone()`, and not just `Single()` and `Multiple()`? This is to emphasize that these functions can still drop back to `None()` in certain circumstances. If `SingleOrNone()` is called with a `null`, it will fall back to `None()`. If `MultipleOrNone()` is called with a `null`, or with an empty list, it will fall back to `None()`.
 

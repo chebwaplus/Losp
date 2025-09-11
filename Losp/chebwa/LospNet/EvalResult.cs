@@ -86,9 +86,15 @@ namespace chebwa.LospNet
 	/// otherwise, it will be <see cref="ResultType.SuccessEmit"/> and its
 	/// <see cref="Values"/> will contain at least one item.
 	/// </summary>
-	public record ValueResult : EvalResult
+	public sealed record ValueResult : EvalResult
 	{
+		/// <summary>
+		/// The key name associated with the <see cref="Values"/> of this result, if any.
+		/// </summary>
 		public string? Key { get; init; }
+		/// <summary>
+		/// T
+		/// </summary>
 		public IEnumerable<LospValue> Values { get; init; }
 
 		public LospValue? FirstOrDefault()
@@ -175,7 +181,7 @@ namespace chebwa.LospNet
 	/// </summary>
 	/// <param name="Source">The <see cref="LospNode"/> involved with the error, if any.</param>
 	/// <param name="Message">A message describing the error.</param>
-	public record ErrorResult(LospNode? Source, string? Message) : EvalResult(ResultType.Error);
+	public sealed record ErrorResult(LospNode? Source, string? Message) : EvalResult(ResultType.Error);
 	/// <summary>
 	/// <para>
 	/// A result type that indicates the expression cannot be evaluated immediately, i.e.
@@ -204,7 +210,7 @@ namespace chebwa.LospNet
 	/// </summary>
 	/// <param name="Source">The <see cref="IAsyncProxy"/> that can be used to handle
 	/// the final evaluated result of the expression.</param>
-	public record AsyncResult(IAsyncProxy Source) : EvalResult(ResultType.Async)
+	public sealed record AsyncResult(IAsyncProxy Source) : EvalResult(ResultType.Async)
 	{
 		/// <summary>
 		/// Registers the <paramref name="callback"/> to be invoked once all asynchronous
@@ -231,6 +237,134 @@ namespace chebwa.LospNet
 	/// </summary>
 	/// <param name="Nodes">The nodes to be evaluated.</param>
 	/// <param name="OnComplete">The callback invoked once the nodes have been evaluated.</param>
-	public record PushResult(IEnumerable<LospNode> Nodes, Func<LospChildResultDataCollection, EvalResult> OnComplete)
+	public sealed record PushResult(IEnumerable<LospNode> Nodes, Func<LospChildResultDataCollection, EvalResult> OnComplete)
 		: EvalResult(ResultType.Push);
+
+	public abstract record LospResult(ResultType Type);
+	public abstract record LospTerminalResult(ResultType Type) : LospResult(Type);
+	/// <summary>
+	/// A result type that indicates successful evaluation of an expression.
+	/// The result may include zero or more values, depending on the expression
+	/// type and its evaluation. If no values were emitted, the result's
+	/// <see cref="EvalResult.Type"/> will be <see cref="ResultType.SuccessNoEmit"/>;
+	/// otherwise, it will be <see cref="ResultType.SuccessEmit"/> and its
+	/// <see cref="Values"/> will contain at least one item.
+	/// </summary>
+	public sealed record LospValueResult : LospTerminalResult
+	{
+		/// <summary>
+		/// The key name associated with the <see cref="Values"/> of this result, if any.
+		/// </summary>
+		public string? Key { get; init; }
+		/// <summary>
+		/// The zero or more <see cref="LospValue"/>s 
+		/// </summary>
+		public IEnumerable<LospValue> Values { get; init; }
+
+		public LospValue? FirstOrDefault()
+		{
+			return Values.FirstOrDefault();
+		}
+		/// <inheritdoc cref="ValueResult.TryGetLast(out LospValue?)"/>
+		public bool TryGetLast([NotNullWhen(true)] out LospValue? last)
+		{
+			last = Values.LastOrDefault();
+			return last != null;
+		}
+		/// <inheritdoc cref="ValueResult.LastOrDefault"/>
+		public LospValue? LastOrDefault()
+		{
+			return Values.LastOrDefault();
+		}
+
+		/// <summary>
+		/// Creates a <see cref="ValueResult"/> with zero or more <paramref name="values"/>.
+		/// If <paramref name="values"/> contains at least one item, the result's
+		/// <see cref="EvalResult.Type"/> is set to <see cref="ResultType.SuccessEmit"/>;
+		/// otherwise, it is set to <see cref="ResultType.SuccessNoEmit"/>.
+		/// </summary>
+		/// <param name="values"></param>
+		/// <param name="key"></param>
+		internal LospValueResult(ValueResult result)
+			: base(result.Type)
+		{
+			Key = result.Key;
+			Values = result.Values;
+		}
+	}
+	/// <summary>
+	/// A result type indicating an error in evaluating an expression.
+	/// </summary>
+	/// <param name="Source">The <see cref="LospNode"/> involved with the error, if any.</param>
+	/// <param name="Message">A message describing the error.</param>
+	public sealed record LospErrorResult : LospTerminalResult
+	{
+		/// <inheritdoc cref="ErrorResult.Source"/>
+		public LospNode? Source { get; init; }
+		/// <inheritdoc cref="ErrorResult.Message"/>
+		public string? Message { get; init; }
+
+		internal LospErrorResult(ErrorResult result) : base(result.Type)
+		{
+			Source = result.Source;
+			Message = result.Message;
+		}
+	}
+	/// <summary>
+	/// <para>
+	/// A result type that indicates the expression cannot be evaluated immediately, i.e.
+	/// it requires some asynchronous process before it can complete.
+	/// </para>
+	/// <para>
+	/// When an <see cref="AsyncResult"/> is returned, its <see cref="Source"/> provides
+	/// a callback hook (<see cref="IAsyncProxy.OnAsyncCompleted(Action{EvalResult})"/>)
+	/// that should be used to receive the final evaluation result.
+	/// <see cref="OnAsyncCompleted(Action{LospTerminalResult})"/> can be called on the
+	/// <see cref="AsyncResult"/> directly instead; it simply forwards the callback to
+	/// the <see cref="Source"/>.
+	/// </para>
+	/// <para>
+	/// In typical uses of Losp (calling <see cref="Losp.Eval(LospNode)"/> or
+	/// <see cref="Losp.Call(LospLambda, IEnumerable{LospValue})"/>) a top-level
+	/// <see cref="AsyncResult"/> only occurs once at most. If no internal expression
+	/// returns an <see cref="AsyncResult"/>, the top-level evaluation will also not
+	/// return one. But if any internal expression returns an <see cref="AsyncResult"/>
+	/// then that result and all further asynchronous evaluations are wrapped up in a
+	/// single top-level <see cref="AsyncResult"/>; the top-level <see cref="AsyncResult"/>
+	/// can only be resolved with a <see cref="ValueResult"/> or an
+	/// <see cref="ErrorResult"/>. (In other words, callbacks do not need to handle
+	/// cases of recursive <see cref="AsyncResult"/>s.)
+	/// </para>
+	/// </summary>
+	/// <param name="Source">The <see cref="IAsyncProxy"/> that can be used to handle
+	/// the final evaluated result of the expression.</param>
+	public sealed record LospAsyncResult : LospResult
+	{
+		private readonly AsyncResult _result;
+		internal LospAsyncResult(AsyncResult result) : base(result.Type)
+		{
+			_result = result;
+		}
+
+		/// <summary>
+		/// Registers the <paramref name="callback"/> to be invoked once all asynchronous
+		/// processes are completed. See the <see cref="AsyncResult"/> documentation for
+		/// more details.
+		/// </summary>
+		/// <param name="callback">The delegate to call when a result is available.</param>
+		public void OnAsyncCompleted(Action<LospTerminalResult> callback)
+		{
+			_result.OnAsyncCompleted(result =>
+			{
+				LospTerminalResult lospResult = result switch
+				{
+					ValueResult vr => new LospValueResult(vr),
+					ErrorResult er => new LospErrorResult(er),
+					_ => new LospErrorResult(new(null, "unexpected result type: " + result.GetType().Name)),
+				};
+
+				callback(lospResult);
+			});
+		}
+	}
 }

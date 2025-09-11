@@ -54,10 +54,10 @@ namespace chebwa.LospNet
 	}
 
 	/// <summary>
-	/// The main interface with the Losp scripting library. It provides means to parse,
+	/// The main interface to the Losp scripting library. It provides means to parse,
 	/// evaluate, and write (as output) various elements of the Losp.
 	/// </summary>
-	public class Losp
+	public static class Losp
 	{
 		// high-level process:
 		//
@@ -223,12 +223,13 @@ namespace chebwa.LospNet
 		/// </summary>
 		/// <param name="input">The Losp script source.</param>
 		/// <returns>The result of evaluating the parsed input.</returns>
-		public static EvalResult Eval(string input)
+		public static LospResult Eval(string input)
 		{
 			return Eval(Parse(input));
 		}
 
 		private static readonly LospRunner _runner = new();
+
 		/// <summary>
 		/// Evaluates the AST represented by the <paramref name="root"/>. Returned
 		/// <see cref="EvalResult"/> types are:
@@ -244,9 +245,58 @@ namespace chebwa.LospNet
 		/// </summary>
 		/// <param name="root">The root or subtree of the AST to evaluate.</param>
 		/// <returns>The result of evaluating <paramref name="root"/> and its AST.</returns>
-		public static EvalResult Eval(LospNode root)
+		public static LospResult Eval(LospNode root)
 		{
 			return _runner.Eval(root);
+		}
+
+		/// <summary>
+		/// <para>
+		/// Parses the input Losp script (by invoking <see cref="Parse(string)"/>) and
+		/// evaluates the returned AST (by invoking <see cref="Eval(LospNode)"/>).
+		/// </para>
+		/// <para>
+		/// Unlike <see cref="Eval(string)"/>, async results are handled for you such
+		/// that the only possible results are a <see cref="LospValueResult"/> or
+		/// <see cref="LospErrorResult"/>.
+		/// </para>
+		/// </summary>
+		/// <param name="input">The Losp script source.</param>
+		/// <returns>The asynchronous result of evaluating the parsed input.</returns>
+		public static Task<LospTerminalResult> EvalAsync(string input)
+		{
+			return EvalAsync(Parse(input));
+		}
+
+		/// <summary>
+		/// <para>
+		/// Evaluates the AST represented by the <paramref name="root"/>. Unlike
+		/// <see cref="Eval(LospNode)"/>, possible returned <see cref="LospResult"/>
+		/// types are:
+		/// <list type="bullet">
+		/// <item><see cref="LospValueResult"/> - the evaluation was successful the
+		/// <paramref name="root"/> emitted zero or more values</item>
+		/// <item><see cref="LospErrorResult"/> - the evaluator was unable to evaluate
+		/// the script due to a specified error</item>
+		/// </list>
+		/// </para>
+		/// </summary>
+		/// <param name="root">The root or subtree of the AST to evaluate.</param>
+		/// <returns>The asynchronous result of evaluating <paramref name="root"/> and its AST.</returns>
+		public static Task<LospTerminalResult> EvalAsync(LospNode root)
+		{
+			var result = _runner.Eval(root);
+
+			if (result is LospAsyncResult ar)
+			{
+				var tcs = new TaskCompletionSource<LospTerminalResult>();
+
+				ar.OnAsyncCompleted(tcs.SetResult);
+
+				return tcs.Task;
+			}
+
+			return Task.FromResult((LospTerminalResult)result);
 		}
 
 		/// <summary>
@@ -256,9 +306,39 @@ namespace chebwa.LospNet
 		/// <param name="args">The collection of zero or more arguments to pass to the
 		/// <paramref name="lambda"/>.</param>
 		/// <returns>The result of evaluating the <paramref name="lambda"/>.</returns>
-		public static EvalResult Call(LospLambda lambda, IEnumerable<LospValue> args)
+		public static LospResult Call(LospLambda lambda, IEnumerable<LospValue> args)
 		{
 			return _runner.Call(lambda, args);
+		}
+
+		/// <summary>
+		/// <para>
+		/// Invokes a Losp lambda with the provided arguments.
+		/// </para>
+		/// <para>
+		/// Unlike <see cref="Call(LospLambda, IEnumerable{LospValue})"/>, async results
+		/// are handled for you such that the only possible results are a
+		/// <see cref="LospValueResult"/> or <see cref="LospErrorResult"/>.
+		/// </para>
+		/// </summary>
+		/// <param name="lambda">The Losp lambda to invoke and evaluate.</param>
+		/// <param name="args">The collection of zero or more arguments to pass to the
+		/// <paramref name="lambda"/>.</param>
+		/// <returns>The asynchronous result of evaluating the <paramref name="lambda"/>.</returns>
+		public static Task<LospTerminalResult> CallAsync(LospLambda lambda, IEnumerable<LospValue> args)
+		{
+			var result = Call(lambda, args);
+
+			if (result is LospAsyncResult ar)
+			{
+				var tcs = new TaskCompletionSource<LospTerminalResult>();
+
+				ar.OnAsyncCompleted(tcs.SetResult);
+
+				return tcs.Task;
+			}
+
+			return Task.FromResult((LospTerminalResult)result);
 		}
 
 		/// <summary>
