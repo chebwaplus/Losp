@@ -195,11 +195,6 @@ namespace chebwa.Losp
 		{
 			switch (result)
 			{
-				case LospErrorResult er:
-					var str = (er.Source is LospOperatorNode op ? op.NodeId + ": " : string.Empty) + er.Message;
-					return "<error: " + str + ">";
-				case LospAsyncResult:
-					return "<async>";
 				case LospValueResult vr:
 					if (vr.Type == ResultType.SuccessNoEmit)
 					{
@@ -214,6 +209,11 @@ namespace chebwa.Losp
 						}
 						return "[" + string.Join(", ", vr.Values.Select(v => WriteValue(v, underlyingValueOnly))) + "]";
 					}
+				case LospErrorResult er:
+					var str = (er.Source is LospOperatorNode op ? op.NodeId + ": " : string.Empty) + er.Message;
+					return "<error: " + str + ">";
+				case LospAsyncResult:
+					return "<async>";
 				default:
 					return $"<unexpected result type: {result.Type}>";
 			}
