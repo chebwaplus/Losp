@@ -1,5 +1,6 @@
 ﻿// SPDX-License-Identifier: MIT
 
+using System;
 using System.Globalization;
 
 namespace chebwa.LospNet
@@ -388,5 +389,42 @@ namespace chebwa.LospNet
 			type = NumericType.None;
 			return false;
 		}
+	}
+
+	// nothing coherent here; just one thie from ChatGPT, and then a potentially better thing
+	//  from https://blog.ndepend.com/alternate-lookup-for-dictionary-and-hashset-in-net-9/
+	class SpanStringComparer : IEqualityComparer<string>
+	{
+		public bool Equals(string? x, string? y) => string.Equals(x, y);
+		public int GetHashCode(string obj) => string.GetHashCode(obj.AsSpan());
+
+		public bool Equals(string x, ReadOnlySpan<char> y) =>
+			MemoryExtensions.Equals(x, y, StringComparison.Ordinal);
+
+		public void Eq()
+		{
+			var dico = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) {
+				{ "Paul", 11 },
+				{ "John", 22 },
+				{ "Jack", 33 }
+			};
+
+			// .NET 9 : GetAlternateLookup()
+			Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> lookup = dico.GetAlternateLookup<ReadOnlySpan<char>>();
+
+			// https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.split?view=net-8.0
+			string names = "jack ; paul;john ";
+			MemoryExtensions.SpanSplitEnumerator<char> ranges = names.AsSpan().Split(';');
+
+			foreach (Range range in ranges)
+			{
+				ReadOnlySpan<char> key = names.AsSpan(range).Trim();
+				int val = lookup[key];
+				Console.WriteLine(val);
+			}
+		}
+
+		public int GetHashCode(ReadOnlySpan<char> span) =>
+			string.GetHashCode(span);
 	}
 }
