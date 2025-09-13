@@ -253,10 +253,13 @@ namespace chebwa.LospNet
 					{
 						if (top.ChildResults.Count == 0)
 						{
+							// when a KV has no defined value, the value is implicitly `true`
 							top.OnComplete(ValueResult.SingleOrNone(new LospBool(true), kv.NodeId));
 						}
 						else
 						{
+							// if any keys are present, the KV becomes an object literal and
+							//  unkeyed values are ignored
 							if (top.ChildResults.Keys.Any())
 							{
 								var objLit = LospObjectLiteral.FromCollection(top.ChildResults);
@@ -266,6 +269,9 @@ namespace chebwa.LospNet
 							}
 							else
 							{
+								// if there's only one children, use that as the KV's Value;
+								//  otherwise, bundles the children into a list and use
+								//  *that* as the KV's Value
 								if (top.ChildResults.Count == 1)
 								{
 									top.OnComplete(ValueResult.SingleOrNone(top.ChildResults[0], kv.NodeId));
