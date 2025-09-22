@@ -237,6 +237,15 @@ namespace chebwa.LospNet
 
 								stateHandled = true;
 							}
+							else if (tokenPrev == LospTokenType.LeftCurly && tokenCurr == LospTokenType.String)
+							{
+								PeekKV(states)!.IdNode = new()
+								{
+									SourceToken = LospToken.SymbolFromString(tokens[i].RawSpan()[1..^1].ToString()),
+								};
+
+								stateHandled = true;
+							}
 						}
 						break;
 					case ParseState.ObjLiteral:
@@ -608,10 +617,10 @@ namespace chebwa.LospNet
 			// * )
 			FilterPairs.Add((LospTokenType.AnyLeftHand, LospTokenType.RightParen));
 
-			// { symbol
-			KVPairs.Add((LospTokenType.LeftCurly, LospTokenType.Symbol));
-			// symbol tag
-			KVPairs.Add((LospTokenType.Symbol, LospTokenType.Tag));
+			// { symbol | string
+			KVPairs.Add((LospTokenType.LeftCurly, LospTokenType.Symbol | LospTokenType.String));
+			// symbol | string tag
+			KVPairs.Add((LospTokenType.Symbol | LospTokenType.String, LospTokenType.Tag));
 			// tag tag
 			KVPairs.Add((LospTokenType.Tag, LospTokenType.Tag));
 			// * (

@@ -111,7 +111,7 @@ Losp supports object literals, analogous to object literals in JavaScript and JS
 
 Object literals are defined by enclosing double-curly-brackets. Keyed values are defined by single-curly-brackets.
 
-An bare example (not being run in an interpreter):
+An bare example:
 
 ```
 {{
@@ -119,8 +119,11 @@ An bare example (not being run in an interpreter):
 	{ age 0 }
 	{ flag-type-key }
 	{ nested-expression (* 3 2) }
+	{ "name with space" 0.5 }
 }}
 ```
+
+Note that keyed value names can be defined with either symbols or strings. To use spaces in a key name, strings are required; this is very similar to keys in JavaScript object literals (but not JSON, since quoted string names are required in JSON).
 
 Keyed values can be used in one of three basic ways. The typical use is in `{ key-name value }` pairs, where `value` can be any expression that emits a single value. (Operators can emit zero or more values; this hasn't been covered yet.)
 
