@@ -83,64 +83,40 @@ namespace chebwa.LospNet
 					// comment
 					i = ReadToEOL(input, i) + 1;
 				}
-				else if (input[i] == '#' && MatchAt(input, i + 1, '('))
-				{
-					//NOTE: we enforce that the input starts with '[',
-					// so if we are matching '#' we know that i != 0, and
-					// therefore we can look at index i - 1 without needing to
-					// check if i == 0
-					var filterType = input[i - 1] == ')'
-						? LospTokenType.LeftChainFilter
-						: LospTokenType.LeftInitFilter;
-					tokens.Add(new(filterType, input, i, i + 1));
-					i += 2;
-				}
-				else if (input[i] == '=' && MatchAt(input, i + 1, '('))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i));
-					i += 2;
-				}
+				//else if (input[i] == '#' && MatchAt(input, i + 1, '('))
+				//{
+				//	//NOTE: we enforce that the input starts with '[',
+				//	// so if we are matching '#' we know that i != 0, and
+				//	// therefore we can look at index i - 1 without needing to
+				//	// check if i == 0
+				//	var filterType = input[i - 1] == ')'
+				//		? LospTokenType.LeftChainFilter
+				//		: LospTokenType.LeftInitFilter;
+				//	tokens.Add(new(filterType, input, i, i + 1));
+				//	i += 2;
+				//}
 				else if (input[i] == 'F' && MatchAt(input, i + 1, "N("))
 				{
 					tokens.Add(new(LospTokenType.LeftInitFunc, input, i, i + 1));
 					i += 3;
 				}
-				else if (input[i] == '+' && MatchAt(input, i + 1, "+("))
+				else if (TryReadSpecialOperator(input, i, out var spOpEnd))
 				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 1));
-					i += 3;
+					var type = LospTokenType.SpecialOperatorSymbol;
+					if (input[i] == '#' && input[i + 1] == '(')
+					{
+						type = LospTokenType.LeftInitFilter;
+					}
+
+					tokens.Add(new(type, input, i, spOpEnd));
+					i = spOpEnd + 2;
 				}
-				else if (input[i] == '-' && MatchAt(input, i + 1, "-("))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 1));
-					i += 3;
-				}
-				else if (input[i] == 'I' && MatchAt(input, i + 1, "F("))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 1));
-					i += 3;
-				}
-				else if (input[i] == 'F' && MatchAt(input, i + 1, "OR("))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 2));
-					i += 4;
-				}
-				else if (input[i] == 'F' && MatchAt(input, i + 1, "ORI("))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 3));
-					i += 5;
-				}
-				else if (input[i] == 'W' && MatchAt(input, i + 1, "AIT("))
-				{
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i, i + 3));
-					i += 5;
-				}
-				else if (input[i] == '$' && TryReadSpecialOperator(input, i, out var spEnd))
-				{
-					// note that the symbol does not include the leading '$'
-					tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i + 1, spEnd - 1));
-					i = spEnd + 1;
-				}
+				//else if (input[i] == '$' && TryReadSpecialOperator(input, i, out var spEnd))
+				//{
+				//	// note that the symbol does not include the leading '$'
+				//	tokens.Add(new(LospTokenType.SpecialOperatorSymbol, input, i + 1, spEnd - 1));
+				//	i = spEnd + 1;
+				//}
 				else
 				{
 					var end = ReadValue(input, i);
@@ -262,10 +238,15 @@ namespace chebwa.LospNet
 		}
 
 		/// <summary>
+		/// <para>
 		/// Reads forward until certain reserved characters are found, until whitespace
-		/// is found, or until the end of the string is found. The index of the last
-		/// valid character is returned. (If any of the above character types are found,
-		/// the index before that character is returned.)
+		/// is found, until a comment is found, or until the end of the string is found.
+		/// The index of the last valid character is returned. (If any of the above
+		/// character types are found, the index before that character is returned.)
+		/// </para>
+		/// <para>
+		/// Reserved characters are the enclosing brackets types: <c>(){}[]</c>.
+		/// </para>
 		/// </summary>
 		/// <param name="input">The full input string.</param>
 		/// <param name="i">The index to start at.</param>
@@ -294,19 +275,63 @@ namespace chebwa.LospNet
 			return input.Length - 1;
 		}
 
+		private static HashSet<string>? _specialOpNames = null;
+		public static HashSet<string> SpecialOpNames
+		{
+			get
+			{
+				if (_specialOpNames == null)
+				{
+					_specialOpNames = [];
+					foreach (var lospSpOp in LospInternalContext.SpecialOperators.Keys)
+					{
+						_specialOpNames.Add(lospSpOp + "(");
+					}
+				}
+				return _specialOpNames;
+			}
+		}
+
 		public static bool TryReadSpecialOperator(string input, int start, out int end)
 		{
 			var i = ReadValue(input, start);
-			// if i == start + 1, then the symbol is only '$' and not long enough to be
-			//  a valid operator symbol
-			if (i != start && MatchAt(input, i + 1, '('))
+
+			// the character immediately following the symbol must be a left paren
+			if (!MatchAt(input, i + 1, '('))
 			{
-				end = i + 1;
-				return true;
+				end = 0;
+				return false;
 			}
 
-			end = 0;
-			return false;
+			if (input[start] == '$')
+			{
+				// if i == start, and the symbol is only '$', the symbol is invalid
+				//  as a special operator
+				if (i == start)
+				{
+					end = 0;
+					return false;
+				}
+
+				// any other user-defined ("$*") special operator symbol is valid
+				end = i;
+				return true;
+			}
+			else
+			{
+				// if the symbol doesn't start with a $, it must be a Losp official
+				//  operator
+				if (LospInternalContext.SpecialOperators.ContainsKey(input[start..(i + 1)]))
+				{
+					end = i;
+					return true;
+				}
+				else
+				{
+					end = 0;
+					return false;
+				}
+			}
 		}
 
 		public enum NumericType

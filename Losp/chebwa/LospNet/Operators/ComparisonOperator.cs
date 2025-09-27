@@ -79,8 +79,8 @@ namespace chebwa.LospNet.Operators
 
 			return op switch
 			{
-				Op.Equal => left == right,
-				Op.NotEqual => left != right,
+				Op.Equal => left.CompareTo(right) == 0,
+				Op.NotEqual => left.CompareTo(right) != 0,
 				Op.LessThan => left.CompareTo(right) < 0,
 				Op.LessThanOrEqual => left.CompareTo(right) <= 0,
 				Op.GreaterThan => left.CompareTo(right) > 0,

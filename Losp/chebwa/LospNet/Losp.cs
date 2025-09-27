@@ -151,11 +151,10 @@ namespace chebwa.LospNet
 			}
 
 			// handles special operators, which cannot be overridden by a host app
-			if (opName.StartsWith("LOSP:SP:"))
+			if (LospInternalContext.SpecialOperators.TryGetValue(opName, out var sp))
 			{
-				var result = LospInternalContext.SpecialOperators.TryGetValue(opName, out var sp);
 				op = sp;
-				return result;
+				return true;
 			}
 			// handles namespaced standard operators that should not be overridden by a host app
 			else if (opName.StartsWith("LOSP:"))
