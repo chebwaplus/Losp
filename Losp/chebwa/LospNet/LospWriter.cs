@@ -8,11 +8,9 @@ namespace chebwa.Losp
 	internal static class LospWriter
 	{
 		const string Indent = "  ";
-		static readonly StringBuilder _cmdsb = new();
 
 		static StringBuilder WriteIndent(StringBuilder sb, int depth)
 		{
-			sb.Clear();
 			for (var i = 0; i < depth; i++)
 			{
 				sb.Append(Indent);
@@ -22,121 +20,124 @@ namespace chebwa.Losp
 
 		static void WriteOperator(LospOperatorNode op, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
-			sb.AppendLine(indent + op.NodeId + "()");
+			WriteIndent(sb, depth).AppendLine(op.NodeId + "()");
 
-			WriteChildren(op.Children, indent, depth, sb);
+			if (op is LospSpecialOperatorNode sp)
+			{
+				if (sp.SpecialOperatorChildren.Count == 0)
+				{
+					WriteIndent(sb, depth).AppendLine(Indent + "Sp. Children: (none)");
+				}
+				else
+				{
+					WriteIndent(sb, depth).AppendLine(Indent + "Sp. Children:");
+					WriteChildren(sp.SpecialOperatorChildren, depth + 1, sb);
+				}
+			}
+
+			WriteChildren(op.Children, depth, sb);
 		}
 
 		static void WriteFilter(LospFilterNode filter, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
 			if (filter.FilterPosition == LospFilterPosition.Head)
 			{
-				sb.AppendLine(indent + "# " + filter.NodeId + "()");
+				WriteIndent(sb, depth).AppendLine("# " + filter.NodeId + "()");
 			}
 			else
 			{
-				sb.AppendLine(indent + "|> # " + filter.NodeId + "()");
+				WriteIndent(sb, depth).AppendLine("% # " + filter.NodeId + "()");
 			}
 
-			WriteChildren(filter.Children, indent, depth, sb);
+			WriteChildren(filter.Children, depth, sb);
 		}
 
 		static void WriteKV(LospKeyValueNode kv, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
-
 			if (kv.Children.Count == 0 && kv.Tags.Count == 0)
 			{
-				sb.AppendLine(indent + "{" + kv.NodeId + "}");
+				WriteIndent(sb, depth).AppendLine("{" + kv.NodeId + "}");
 			}
 			else
 			{
-				sb.AppendLine(indent + "{" + kv.NodeId + ":");
+				WriteIndent(sb, depth).AppendLine("{" + kv.NodeId + ":");
 
 				if (kv.Tags.Count > 0)
 				{
-					sb.AppendLine(indent + Indent + "Tags: " + string.Join(", ", kv.Tags));
+					WriteIndent(sb, depth).AppendLine(Indent + "Tags: " + string.Join(", ", kv.Tags));
 				}
 				if (kv.Children.Count > 0)
 				{
-					WriteChildren(kv.Children, indent, depth, sb);
+					WriteChildren(kv.Children, depth, sb);
 				}
 
-				sb.AppendLine(indent + "}");
+				WriteIndent(sb, depth).AppendLine("}");
 			}
 		}
 
 		static void WriteList(LospListNode list, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
-
 			if (list.Children.Count == 0)
 			{
-				sb.AppendLine(indent + "[ ]");
+				WriteIndent(sb, depth).AppendLine("[ ]");
 			}
 			else
 			{
-				sb.AppendLine(indent + "[");
-				WriteChildren(list.Children, indent, depth, sb);
-				sb.AppendLine(indent + "]");
+				WriteIndent(sb, depth).AppendLine("[");
+				WriteChildren(list.Children, depth, sb);
+				WriteIndent(sb, depth).AppendLine("]");
 			}
 		}
 
 		static void WriteFunction(LospFunctionNode func, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
+			WriteIndent(sb, depth).AppendLine("FN(");
 
-			sb.AppendLine(indent + "FN(");
-
-			sb.AppendLine(indent + Indent + "Params:");
+			WriteIndent(sb, depth).AppendLine(Indent + "Params:");
 			WriteList(func.Params, depth + 2, sb);
-			sb.AppendLine(indent + Indent + "Body:");
-			WriteChildren(func.Children, indent + Indent, depth + 1, sb);
+			WriteIndent(sb, depth).AppendLine(Indent + "Body:");
+			WriteChildren(func.Children, depth + 1, sb);
 
-			sb.AppendLine(indent + ")");
+			WriteIndent(sb, depth).AppendLine(")");
 		}
 
 		static void WriteObject(LospObjectLiteralNode obj, int depth, StringBuilder sb)
 		{
-			var indent = WriteIndent(_cmdsb, depth).ToString();
-
 			if (obj.Children.Count == 0 && obj.Tags.Count == 0)
 			{
-				sb.AppendLine(indent + "{{ }}");
+				WriteIndent(sb, depth).AppendLine("{{ }}");
 			}
 			else
 			{
-				sb.AppendLine(indent + "{{");
+				WriteIndent(sb, depth).AppendLine("{{");
 
 				if (obj.Tags.Count > 0)
 				{
-					sb.AppendLine(indent + Indent + "Tags: " + string.Join(", ", obj.Tags));
+					WriteIndent(sb, depth).AppendLine(Indent + "Tags: " + string.Join(", ", obj.Tags));
 				}
 				if (obj.Children.Count > 0)
 				{
-					WriteChildren(obj.Children, indent, depth, sb);
+					WriteChildren(obj.Children, depth, sb);
 				}
 
-				sb.AppendLine(indent + "}}");
+				WriteIndent(sb, depth).AppendLine("}}");
 			}
 		}
 
-		static void WriteChildren(LospChildCollection children, string indent, int parentDepth, StringBuilder sb)
+		static void WriteChildren(LospChildCollection children, int parentDepth, StringBuilder sb)
 		{
 			foreach (var child in children)
 			{
-				WriteNode(child, indent, parentDepth, sb);
+				WriteNode(child, parentDepth, sb);
 			}
 		}
 
 		public static StringBuilder WriteNode(LospNode node, StringBuilder? sb = null)
 		{
-			return WriteNode(node, string.Empty, 0, sb);
+			return WriteNode(node, 0, sb);
 		}
 
-		public static StringBuilder WriteNode(LospNode node, string indent, int parentDepth, StringBuilder? sb = null)
+		public static StringBuilder WriteNode(LospNode node, int parentDepth, StringBuilder? sb = null)
 		{
 			sb ??= new();
 
@@ -166,15 +167,18 @@ namespace chebwa.Losp
 			}
 			else if (node is LospLiteralNode data)
 			{
-				sb.AppendLine(indent + Indent + data.Data.BoxedValue?.ToString() ?? "");
+				WriteIndent(sb, parentDepth + 1)
+					.AppendLine(Indent + data.Data.BoxedValue?.ToString() ?? "");
 			}
 			else if (node is LospIdentifierNode id)
 			{
-				sb.AppendLine(indent + Indent + id.Name);
+				WriteIndent(sb, parentDepth + 1)
+					.AppendLine(Indent + id.Name);
 			}
 			else
 			{
-				sb.AppendLine(indent + Indent + node.Type.ToString());
+				WriteIndent(sb, parentDepth + 1)
+					.AppendLine(Indent + node.Type.ToString());
 			}
 
 			return sb;
