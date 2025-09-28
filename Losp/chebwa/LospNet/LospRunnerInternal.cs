@@ -269,8 +269,8 @@ namespace chebwa.LospNet
 							}
 							else
 							{
-								// if there's only one children, use that as the KV's Value;
-								//  otherwise, bundles the children into a list and use
+								// if there's only one child, use that as the KV's Value;
+								//  otherwise, bundle the children into a list and use
 								//  *that* as the KV's Value
 								if (top.ChildResults.Count == 1)
 								{
