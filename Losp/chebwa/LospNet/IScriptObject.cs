@@ -4,6 +4,53 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace chebwa.LospNet
 {
+	public static class ScriptObjectExt
+	{
+		/// <summary>
+		/// Equivalent to calling <see cref="IScriptObject.TryKey(string, out LospValue?)"/>
+		/// then <see cref="LospValue.TryGet{T}(out T)"/>.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="obj">The <see cref="IScriptObject"/> context.</param>
+		/// <param name="key">The key name associated with the value.</param>
+		/// <param name="value">The <see cref="LospValue"/> to retrieve.</param>
+		/// <returns>A <see langword="bool"/> indicating whether a <paramref name="value"/>
+		/// of type <typeparamref name="T"/> was retrieved from the <see cref="LospValue"/>
+		/// associated with the <paramref name="key"/>.</returns>
+		public static bool TryKeyOf<T>(this IScriptObject obj, string key, out T? value)
+		{
+			if (!obj.TryKey(key, out var val))
+			{
+				value = default;
+				return false;
+			}
+
+			return val.TryGet(out value);
+		}
+
+		/// <summary>
+		/// Equivalent to calling <see cref="IScriptObject.TryKey(string, out LospValue?)"/>
+		/// then <see cref="LospValue.TryGetNonNull{T}(out T)"/>.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="obj">The <see cref="IScriptObject"/> context.</param>
+		/// <param name="key">The key name associated with the value.</param>
+		/// <param name="value">The <see cref="LospValue"/> to retrieve.</param>
+		/// <returns>A <see langword="bool"/> indicating whether a <paramref name="value"/>
+		/// of type <typeparamref name="T"/> was retrieved from the <see cref="LospValue"/>
+		/// associated with the <paramref name="key"/>.</returns>
+		public static bool TryKeyNonNull<T>(this IScriptObject obj, string key, [NotNullWhen(true)] out T? value) where T : class
+		{
+			if (!obj.TryKey(key, out var val))
+			{
+				value = default;
+				return false;
+			}
+
+			return val.TryGetNonNull(out value);
+		}
+	}
+
 	/// <summary>
 	/// An object with values that can be retrieved and/or set via a standard interface,
 	/// and thus can be manipulated by the Losp scripting environment.
@@ -11,10 +58,68 @@ namespace chebwa.LospNet
 	public interface IScriptObject
 	{
 		IEnumerable<string> Keys { get; }
+		/// <summary>
+		/// <para>
+		/// Returns a <see cref="LospValue"/> associated with the <paramref name="key"/>,
+		/// if any, or <see langword="null"/> if no associated value exists.
+		/// </para>
+		/// <para>
+		/// Classes that implement <see cref="IScriptObject"/> should return
+		/// <see langword="null"/> as opposed to throwing an exception when no value
+		/// for <paramref name="key"/> exists.
+		/// </para>
+		/// </summary>
+		/// <param name="key">The key name associated with the value.</param>
 		LospValue? Get(string key);
 		void Set(string key, LospValue value);
+		/// <summary>
+		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
+		/// </summary>
+		/// <param name="key">The key name associated with the value.</param>
+		/// <param name="value">The <see cref="LospValue"/> to retrieve.</param>
+		/// <returns>A <see langword="bool"/> indicated whether a <paramref name="value"/>
+		/// was retrieved.</returns>
 		bool TryKey(string key, [NotNullWhen(true)] out LospValue? value);
+		/// <summary>
+		/// Attempts to remove the <paramref name="key"/> and any associated value
+		/// from the object. Returns a value indicating whether the removal was a success.
+		/// Some implementations of <see cref="IScriptObject"/> was not support
+		/// clearing values, in which case <see cref="TryClear(string)"/> will always
+		/// fail.
+		/// </summary>
+		/// <param name="key">The key name associated with the value.</param>
 		bool TryClear(string key);
+		//TODO: a SupportsClear() method/prop?
+		/// <summary>
+		/// <para>
+		/// Generates a dictionary from the underlying data, using all <see cref="Keys"/>
+		/// that have been made available.
+		/// </para>
+		/// <para>
+		/// The <paramref name="toValue"/> map function is applied to each key/value pair
+		/// of this <see cref="IScriptObject"/>, and the key is mapped to the result from
+		/// <paramref name="toValue"/>. In this way, the caller has control over how
+		/// each <see cref="LospValue"/> is mapped in the final dictionary.
+		/// </para>
+		/// <code>
+		/// // in the simplest case, each LospValue is returned directly, without being mapped
+		/// var directMap = obj.ToDictionary&lt;LostValue&gt;((kv) => kv.Value);
+		/// 
+		/// // in this case, the BoxedValue of each LospValue is extracted
+		/// var valueMap = obj.ToDictionary&lt;object&gt;((kv) => kv.Value.BoxedValue);
+		/// 
+		/// // in this case, only string values are mapped; all other values types become null.
+		/// var stringsOnly = obj.ToDictionary&lt;string&gt;((kv) => kv.Value.BoxedValue is string str ? str : null);
+		/// 
+		/// // note that you cannot omit (i.e. skip) keys; all keys will be present in the
+		/// // resulting dictionary even if you wish to ignore them.
+		/// </code>
+		/// </summary>
+		/// <typeparam name="TValue">The type to be returned by <paramref name="toValue"/>.</typeparam>
+		/// <param name="toValue">A map function that takes a source key/value pair and
+		/// transforms the pair into the output value for the resulting dictionary.
+		/// </param>
+		/// <returns></returns>
 		Dictionary<string, TValue> ToDictionary<TValue>(Func<KeyValuePair<string, LospValue>, TValue> toValue);
 	}
 	public interface IScriptObject<T> : IScriptObject
@@ -97,7 +202,12 @@ namespace chebwa.LospNet
 		}
 	}
 
-	public record LambdaProperty(string Key, Func<LospValue> Getter, Action<LospValue>? Setter);
+	/// <summary>
+	/// A record type that is used by <see cref="OpaqueLambdaScriptObject"/> and
+	/// <see cref="LambdaScriptObject{T}"/> to make values from underlying data
+	/// available to the Losp runtime.
+	/// </summary>
+	public sealed record LambdaProperty(string Key, Func<LospValue> Getter, Action<LospValue>? Setter = null);
 
 	/// <summary>
 	/// An <see cref="IScriptObject"/> which does not expose its underlying object

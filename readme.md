@@ -1,10 +1,10 @@
 # About Losp
 
-*Losp* is a Lisp-adjacent scripting language with an interpreter written in C#. It has syntactic support for lists and object literals; as such it may be considered closer to something like Clojure. The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
+*Losp* is a Lisp-adjacent scripting language with an interpreter written in C#. Its intended use case is game scripting. It has syntactic support for lists and object literals; as such it may be considered closer to something like Clojure. The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
 
 ## What It Looks Like
 
-This example creates an object literal, which has multiple tags and multiple keyed values. Keyed values look like `{ name value }`.
+This example creates an object literal, which has multiple tags and multiple keyed values. Keyed values typically look like `{ name value }`.
 
 ```
 {{
@@ -21,6 +21,7 @@ This example creates an object literal, which has multiple tags and multiple key
 	{ a-string "hello!" }
 	{ a-null null }
 	{ a-list [1 2 3 "mixed types" {{ #another-object }}] }
+	{ "key with spaces" 100 } // strings can also be used as key names; necessary if you need spaces
 	{ implicit-true-key } // if no value is specified, it becomes `true`
 
 	{ an-operator (+ 1 5) } // will be evaluated so an-operator = 6
@@ -56,6 +57,10 @@ Lists are enclosed in square brackets and object literals are enclosed in double
 Lambdas allow for user-defined functions to be created and passed around, with zero or more parameters. Lambda bodies are only evaluated when the lambda is invoked as or by an operator or by a host app. Lambdas must be assigned to a variable to be invoked as an operator.
 
 Host apps can provide *extrinsic* types and can register their own operators.
+
+## Make It Do a Thing
+
+The simplest way to use Losp quickly--which will cover most cases, anyway--is to use `await Losp.EvalAsync()`, passing in the Losp source string. You can then determine if the returned `LospTerminalResult` `is LospValueResult` (good) or `is LospErrorResult` (bad).
 
 ## More!
 

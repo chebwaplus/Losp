@@ -36,7 +36,7 @@ namespace chebwa.LospNet
 		Chain,
 	}
 
-	public abstract class LospNode()
+	public abstract class LospNode
 	{
 		public abstract LospNodeType Type { get; }
 
@@ -45,6 +45,8 @@ namespace chebwa.LospNet
 		public LospToken? SourceToken = null;
 
 		public virtual LospChildCollection? Children { get; } = null;
+
+		internal LospNode() { }
 
 		public override string ToString()
 		{
@@ -116,7 +118,7 @@ namespace chebwa.LospNet
 	/// values (derived from the nodes in <see cref="Children"/>) with a key string, as
 	/// provided by <see cref="Key"/>.
 	/// </summary>
-	public class LospKeyValueNode() : LospNode()
+	public sealed class LospKeyValueNode() : LospNode()
 	{
 		public override LospNodeType Type => LospNodeType.KeyValue;
 		public readonly List<string> Tags = [];

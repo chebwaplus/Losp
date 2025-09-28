@@ -2,6 +2,12 @@
 
 namespace chebwa.LospNet
 {
+	/// <summary>
+	/// A Losp data type that represents a callable function. Use
+	/// <see cref="Losp.Call(LospLambda, IEnumerable{LospValue})"/> or
+	/// <see cref="Losp.CallAsync(LospLambda, IEnumerable{LospValue})"/> to
+	/// invoke the function.
+	/// </summary>
 	public sealed class LospLambda
 	{
 		public readonly List<string> ParamNames = [];

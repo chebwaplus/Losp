@@ -39,13 +39,15 @@ namespace chebwa.LospNet
 		internal static readonly Dictionary<string, IScriptOperator> StandardOperators = [];
 
 		internal const string LospSpecialOperatorPrefix = "LOSP:SP:";
-		public const string LospAssignmentOpName = LospSpecialOperatorPrefix + "=";
-		public const string LospIfOpName = LospSpecialOperatorPrefix + "IF";
-		public const string LospForOpName = LospSpecialOperatorPrefix + "FOR";
-		public const string LospForIOpName = LospSpecialOperatorPrefix + "FORI";
-		public const string LospIncOpName = LospSpecialOperatorPrefix + "++";
-		public const string LospDecOpName = LospSpecialOperatorPrefix + "--";
-		public const string LospWaitOpName = LospSpecialOperatorPrefix + "WAIT";
+		public const string LospAssignmentOpName = "=";
+		public const string LospIfOpName = "IF";
+		public const string LospForOpName = "FOR";
+		public const string LospForIOpName = "FORI";
+		public const string LospIncOpName = "++";
+		public const string LospDecOpName = "--";
+		public const string LospWaitOpName = "WAIT";
+		public const string LospFilterOpName = "#";
+		public const string LospFilterRunnerOpName = "LOSP:FILTER";
 
 		static LospInternalContext()
 		{
@@ -57,6 +59,8 @@ namespace chebwa.LospNet
 			SpecialOperators[LospIncOpName] = IncDecOperator.Instance;
 			SpecialOperators[LospDecOpName] = IncDecOperator.Instance;
 			SpecialOperators[LospWaitOpName] = new WaitMSOperator();
+			SpecialOperators[LospFilterOpName] = new FilterOperator();
+			SpecialOperators[LospFilterRunnerOpName] = new FilterRunnerOperator();
 
 			// lists
 			StandardOperators["COUNT"] = new CountListOperator();
@@ -103,6 +107,7 @@ namespace chebwa.LospNet
 			StandardOperators[HasSubstringOperator.ContainsOpName] = HasSubstringOperator.Instance;
 
 			// misc
+			StandardOperators["DO"] = ContainerOperator.UnmutedInstance;
 			StandardOperators["RUN"] = ContainerOperator.UnmutedInstance;
 			StandardOperators["LAST"] = ContainerLastResultOperator.Instance;
 			StandardOperators["MUTE"] = ContainerOperator.MutedInstance;

@@ -240,8 +240,15 @@ namespace chebwa.LospNet
 	public sealed record PushResult(IEnumerable<LospNode> Nodes, Func<LospChildResultDataCollection, EvalResult> OnComplete)
 		: EvalResult(ResultType.Push);
 
-	public abstract record LospResult(ResultType Type);
-	public abstract record LospTerminalResult(ResultType Type) : LospResult(Type);
+	public abstract record LospResult
+	{
+		public ResultType Type { get; init; }
+		internal LospResult(ResultType type) { Type = type; }
+	}
+	public abstract record LospTerminalResult : LospResult
+	{
+		internal LospTerminalResult(ResultType Type) : base(Type) { }
+	}
 	/// <summary>
 	/// A result type that indicates successful evaluation of an expression.
 	/// The result may include zero or more values, depending on the expression
@@ -261,22 +268,6 @@ namespace chebwa.LospNet
 		/// </summary>
 		public IEnumerable<LospValue> Values { get; init; }
 
-		public LospValue? FirstOrDefault()
-		{
-			return Values.FirstOrDefault();
-		}
-		/// <inheritdoc cref="ValueResult.TryGetLast(out LospValue?)"/>
-		public bool TryGetLast([NotNullWhen(true)] out LospValue? last)
-		{
-			last = Values.LastOrDefault();
-			return last != null;
-		}
-		/// <inheritdoc cref="ValueResult.LastOrDefault"/>
-		public LospValue? LastOrDefault()
-		{
-			return Values.LastOrDefault();
-		}
-
 		/// <summary>
 		/// Creates a <see cref="ValueResult"/> with zero or more <paramref name="values"/>.
 		/// If <paramref name="values"/> contains at least one item, the result's
@@ -290,6 +281,32 @@ namespace chebwa.LospNet
 		{
 			Key = result.Key;
 			Values = result.Values;
+		}
+
+		public LospValue? FirstOrDefault()
+		{
+			return Values.FirstOrDefault();
+		}
+		/// <inheritdoc cref="ValueResult.TryGetLast(out LospValue?)"/>
+		public bool TryGetLast([NotNullWhen(true)] out LospValue? last)
+		{
+			last = Values.LastOrDefault();
+			return last != null;
+		}
+		public bool TryGetLastAs<T>(out T? last)
+		{
+			if (TryGetLast(out var value))
+			{
+				return value.TryGet(out last);
+			}
+
+			last = default;
+			return false;
+		}
+		/// <inheritdoc cref="ValueResult.LastOrDefault"/>
+		public LospValue? LastOrDefault()
+		{
+			return Values.LastOrDefault();
 		}
 	}
 	/// <summary>

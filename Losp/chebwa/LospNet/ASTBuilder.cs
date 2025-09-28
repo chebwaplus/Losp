@@ -41,6 +41,12 @@ namespace chebwa.LospNet
 
 			public override LospChildCollection Children { get; } = [];
 		}
+		private class LospFilterProtoNode() : LospNode()
+		{
+			public override LospNodeType Type => LospNodeType.Filter;
+
+			public override LospChildCollection Children { get; } = [];
+		}
 		/// <summary>
 		/// A version of a ListNode that allows for all child types; used only
 		/// at root level (AST root only) to allow top-level KV nodes.
@@ -59,7 +65,6 @@ namespace chebwa.LospNet
 			KeyValue,
 			List,
 			Function,
-			FunctionParams,
 		}
 
 		private record struct ParseStateEntry(ParseState State, LospNode Node, bool IsTop = false);
@@ -88,11 +93,11 @@ namespace chebwa.LospNet
 				if (Peek<LospOperatorNode>(stack, out var node)) return node;
 				return null;
 			}
-			static LospFilterNode? PeekFilter(Stack<ParseStateEntry> stack)
-			{
-				if (Peek<LospFilterNode>(stack, out var node)) return node;
-				return null;
-			}
+			//static LospFilterNode? PeekFilter(Stack<ParseStateEntry> stack)
+			//{
+			//	if (Peek<LospFilterNode>(stack, out var node)) return node;
+			//	return null;
+			//}
 			static LospKeyValueNode? PeekKV(Stack<ParseStateEntry> stack)
 			{
 				if (Peek<LospKeyValueNode>(stack, out var node)) return node;
@@ -147,6 +152,7 @@ namespace chebwa.LospNet
 
 				switch (curState)
 				{
+					//TODO: I should probably separate these two
 					case ParseState.Operator:
 					case ParseState.SpecialOperator:
 						{
@@ -169,7 +175,7 @@ namespace chebwa.LospNet
 									stateHandled = true;
 								}
 							}
-							else if (tokenPrev == LospTokenType.LeftParen && tokenCurr == LospTokenType.Symbol)
+							else if (tokenPrev == LospTokenType.LeftParen && curState == ParseState.Operator && tokenCurr == LospTokenType.Symbol)
 							{
 								PeekOp(states)!.IdNode = new()
 								{
@@ -182,22 +188,47 @@ namespace chebwa.LospNet
 						break;
 					case ParseState.Filter:
 						{
-							if (tokenCurr == LospTokenType.RightParen)
-							{
-								//TODO: if filter is chained, do not add to parent
-								// (we just need to pop state, I believe)
-								if (TryPopAndAddToParent(states))
-								{
-									stateHandled = true;
-								}
-							}
-							else if (LospTokenType.LeftFilter.HasFlag(tokenPrev) && tokenCurr == LospTokenType.Symbol)
-							{
-								PeekFilter(states)!.IdNode = new()
-								{
-									SourceToken = tokens[i],
-								};
+							var state = states.Pop();
+							var filter = (state.Node as LospFilterProtoNode)!;
 
+							/*
+							 * wrap all the filters in a filter runner
+							 */
+							var runner = new LospSpecialOperatorNode()
+							{
+								IdNode = new LospIdentifierNode()
+								{
+									SourceToken = LospToken.SymbolFromString(LospInternalContext.LospFilterRunnerOpName),
+								}
+							};
+							foreach (var child in filter.Children)
+							{
+								runner.SpecialOperatorChildren.Add(child);
+							}
+
+							/*
+							 * wrap the runner in a lambda whose only parameter is named "value"
+							 */
+							var func = new LospFunctionNode()
+							{
+								Params = new(),
+							};
+							func.Params.Children.Add(new LospIdentifierNode()
+							{
+								SourceToken = LospToken.SymbolFromString("value"),
+							});
+							func.Children.Add(runner);
+
+							/*
+							 * replace the current node and do the normal pop/apply
+							 * 
+							 */
+							state.Node = func;
+							states.Push(state);
+
+							if (TryPopAndAddToParent(states))
+							{
+								i--;
 								stateHandled = true;
 							}
 						}
@@ -233,6 +264,15 @@ namespace chebwa.LospNet
 								PeekKV(states)!.IdNode = new()
 								{
 									SourceToken = tokens[i],
+								};
+
+								stateHandled = true;
+							}
+							else if (tokenPrev == LospTokenType.LeftCurly && tokenCurr == LospTokenType.String)
+							{
+								PeekKV(states)!.IdNode = new()
+								{
+									SourceToken = LospToken.SymbolFromString(tokens[i].RawSpan()[1..^1].ToString()),
 								};
 
 								stateHandled = true;
@@ -298,17 +338,6 @@ namespace chebwa.LospNet
 							}
 						}
 						break;
-					case ParseState.FunctionParams:
-						{
-							if (tokenCurr == LospTokenType.RightSquare)
-							{
-								if (TryPopAndAddToParent(states))
-								{
-									stateHandled = true;
-								}
-							}
-						}
-						break;
 				}
 
 				if (!stateHandled)
@@ -353,8 +382,16 @@ namespace chebwa.LospNet
 					}
 					else if (tokenCurr == LospTokenType.LeftInitFilter)
 					{
-						var filter = new LospFilterNode(false);
-						states.Push(new(ParseState.Filter, filter));
+						states.Push(new(ParseState.Filter, new LospFilterProtoNode()));
+
+						var spOp = new LospOperatorNode()
+						{
+							IdNode = new()
+							{
+								SourceToken = MapSpecialOpSourceToken(tokens[i]),
+							},
+						};
+						states.Push(new(ParseState.SpecialOperator, spOp));
 					}
 					else if (tokenCurr == LospTokenType.LeftChainFilter)
 					{
@@ -525,9 +562,9 @@ namespace chebwa.LospNet
 		{
 			var raw = token.Raw();
 
-			if (LospInternalContext.SpecialOperators.ContainsKey(LospInternalContext.LospSpecialOperatorPrefix + raw))
+			if (LospInternalContext.SpecialOperators.ContainsKey(raw))
 			{
-				var op = LospInternalContext.LospSpecialOperatorPrefix + raw;
+				var op = raw;
 				return new(token.Type, op, 0, op.Length - 1);
 			}
 
@@ -565,7 +602,7 @@ namespace chebwa.LospNet
 			var anySymLit = (LospTokenType.AnyLeftHand, LospTokenType.SymbolOrLiteral);
 
 			// *( *
-			OperatorPairs.Add((LospTokenType.SpecialOperatorSymbol, LospTokenType.AnyRightHand));
+			OperatorPairs.Add((LospTokenType.SpecialOperatorSymbol | LospTokenType.LeftInitFilter, LospTokenType.AnyRightHand));
 			// ( symbol
 			OperatorPairs.Add((LospTokenType.LeftParen, LospTokenType.Symbol));
 			// * (
@@ -608,10 +645,10 @@ namespace chebwa.LospNet
 			// * )
 			FilterPairs.Add((LospTokenType.AnyLeftHand, LospTokenType.RightParen));
 
-			// { symbol
-			KVPairs.Add((LospTokenType.LeftCurly, LospTokenType.Symbol));
-			// symbol tag
-			KVPairs.Add((LospTokenType.Symbol, LospTokenType.Tag));
+			// { symbol | string
+			KVPairs.Add((LospTokenType.LeftCurly, LospTokenType.Symbol | LospTokenType.String));
+			// symbol | string tag
+			KVPairs.Add((LospTokenType.Symbol | LospTokenType.String, LospTokenType.Tag));
 			// tag tag
 			KVPairs.Add((LospTokenType.Tag, LospTokenType.Tag));
 			// * (
@@ -734,11 +771,10 @@ namespace chebwa.LospNet
 			return state switch
 			{
 				ParseState.Operator or ParseState.SpecialOperator => CheckPairs(OperatorPairs),
-				ParseState.Filter => CheckPairs(FilterPairs),
+				ParseState.Filter => true,
 				ParseState.KeyValue => CheckPairs(KVPairs),
 				ParseState.List => CheckPairs(ListPairs),
 				ParseState.Function => CheckPairs(FuncPairs),
-				ParseState.FunctionParams => CheckPairs(ParamListPairs),
 				ParseState.ObjLiteral => CheckPairs(ObjectPairs),
 				_ => false,
 			};
