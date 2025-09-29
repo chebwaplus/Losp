@@ -238,6 +238,51 @@ The body expressions of a lambda are not evaluated immediately. If a lambda is a
 
 Lambdas returned to the host app can also be invoked with values from the app as arguments.
 
+### Filters
+
+A filter combines a lambda and an operator. Lambdas are created with the `#` special operator but are defined almost like a normal operator. They must be used with operators that return a boolean value.
+
+```
+< #(== 1)
+> <lambda>
+```
+
+The above example defines an equality comparison operator but provides only one value, whereas you'd typically compare two values. The value of a filter is that the first argument to the operator is added implicitly, when the Losp runner parses the expression. The above filter is roughly (but not exactly) equivalent to:
+
+```
+< FN([value] (== value 1))
+> <lambda>
+```
+
+Losp uses the `%` symbol to "chain" two or more filters. The "chain" is more a syntactic chain than a logical chain. Two filters that are chained will be evaluated together. The following two examples are (roughly) equivalent:
+
+```
+< #(STARTS "Lo") % #(ENDS "sp")
+> <lambda>
+< FN([value] (ALL (STARTS value "Lo") (ENDS value "sp")))
+> <lambda>
+```
+
+The actual implementation uses short-circuit semantics, which the `(ALL)` operator doesn't use.
+
+> [Short-circuit evaluation](https://en.wikipedia.org/wiki/Short-circuit_evaluation) is used to stop evaluating expressions as soon as any further evaluation is unnecessary. Standard operators in Losp have no control over how their arguments are evaluated, and so `(ALL)` and any other standard operator cannot short-circuit. Special operators *do* have control. If you print the AST of a filter, you'll see that a special operator is used behind the scenes to provide the short-circuit semantics.
+>
+> The practical consequence is that you should place "cheaper" operators (those that are simpler to evaluate) first.
+
+Filters are used in the same way as any other lambda. This example assigns two chained filters to a variable and invokes them with several values.
+
+```
+< =(f #(STARTS "Lo") % #(ENDS "sp")) (f "Lo") (f "sp") (f "Lisp") (f "Losp") (f "losp") (f "Lorrrrsp")
+> [<lambda> False False False True False True]
+```
+
+Because of how [keyed arguments](#keyed-values-in-operators) are typically handled, they can be used with filters without issue.
+
+```
+< =(f #(STARTS {i} "Lo") % #(ENDS "sp")) (f "Losp") (f "losp") (f "LOSP")
+> [<lambda> True True False]
+```
+
 ## Expression Expansion
 
 ... TODO (talk about emitted values, esp. when zero or multiple values are emitted)

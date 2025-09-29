@@ -11,8 +11,8 @@ namespace chebwa.LospNet
 		RightParen = 1 << 2,
 		/// <summary><c>#(</c></summary>
 		LeftInitFilter = 1 << 3,
-		/// <summary><c>#(</c> (directly following a <c>)</c>)</summary>
-		LeftChainFilter = 1 << 4,
+		/// <summary><c>%</c></summary>
+		FilterChainer = 1 << 4,
 		/// <summary><c>[</c></summary>
 		LeftSquare = 1 << 5,
 		/// <summary><c>]</c></summary>
@@ -54,12 +54,11 @@ namespace chebwa.LospNet
 		/// </para>
 		/// </summary>
 		SpecialOperatorSymbol = 1 << 18,
+		/// <summary>
+		/// A <see cref="Symbol"/>-like bare string that starts with <c>#</c>.
+		/// </summary>
 		Tag = 1 << 19,
 
-		/// <summary>
-		/// Both filter prefixes (which are identical anyway).
-		/// </summary>
-		LeftFilter = LeftInitFilter | LeftChainFilter,
 		/// <summary>
 		/// All literal types.
 		/// </summary>

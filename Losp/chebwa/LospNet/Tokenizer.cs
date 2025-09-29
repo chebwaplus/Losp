@@ -72,6 +72,11 @@ namespace chebwa.LospNet
 					tokens.Add(new(LospTokenType.RightSquare, input, i, i));
 					i++;
 				}
+				else if (input[i] == '%')
+				{
+					tokens.Add(new(LospTokenType.FilterChainer, input, i, i));
+					i++;
+				}
 				else if (input[i] == '"' || input[i] == '`')
 				{
 					var end = ReadString(input, i);

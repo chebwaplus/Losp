@@ -35,6 +35,7 @@ This example creates an object literal, which has multiple tags and multiple key
 		)
 	}
 	{ a-lambda FN([param1] param1) } // doesn't do anything except return its parameter
+	{ filters #(STARTS "Lo") % #(ENDS "sp") } // two filters that are "chained"
 
 	// a not-simple case, where a keyed value has its own
 	// keyed values, and thus becomes its own object literal!
@@ -48,13 +49,15 @@ This example creates an object literal, which has multiple tags and multiple key
 
 ## In a Nutshell
 
-Losp has Lisp-like operators, lists, and objects. A "Lisp-like operator" means it is enclosed in parentheses and its name (or *symbol*) is listed first, then all arguments to the operator are listed after, with only whitespace between them, no commas.
+Losp has Lisp-like operators, lists, and objects. A "Lisp-like operator" means it is enclosed in parentheses and its name (or *symbol*) is listed first, then all arguments to the operator are listed after, with only whitespace between them, no commas. The operator expression `(+ 1 2)` is an instance of the addition operator (`+`) which adds its arguments `1` and `2`.
 
 Native basic data types are `int`, `float`, `bool`, and `string` (and the somewhat special case `null`). As shown above, Losp also supports lists, object literals, and lambdas.
 
 Lists are enclosed in square brackets and object literals are enclosed in double curly brackets. Object literals and operators can have *keyed values*, and keyed values may recursively have keyed values. A keyed value is enclosed in single curly brackets and its naming symbol is listed first.
 
 Lambdas allow for user-defined functions to be created and passed around, with zero or more parameters. Lambda bodies are only evaluated when the lambda is invoked as or by an operator or by a host app. Lambdas must be assigned to a variable to be invoked as an operator.
+
+A special kind of lambda is a *filter*. A filter allows you to define a operator where argument to the filter becomes the operator's first argument. Filters can be "chained", which is a syntactic way to combine two filters so they are both applied as one lambda. See the documentation for extended examples.
 
 Host apps can provide *extrinsic* types and can register their own operators.
 

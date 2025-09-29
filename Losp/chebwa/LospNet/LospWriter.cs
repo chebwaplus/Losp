@@ -35,21 +35,7 @@ namespace chebwa.Losp
 				}
 			}
 
-			WriteChildren(op.Children, depth, sb);
-		}
-
-		static void WriteFilter(LospFilterNode filter, int depth, StringBuilder sb)
-		{
-			if (filter.FilterPosition == LospFilterPosition.Head)
-			{
-				WriteIndent(sb, depth).AppendLine("# " + filter.NodeId + "()");
-			}
-			else
-			{
-				WriteIndent(sb, depth).AppendLine("% # " + filter.NodeId + "()");
-			}
-
-			WriteChildren(filter.Children, depth, sb);
+			WriteChildren(op.Children, depth + 1, sb);
 		}
 
 		static void WriteKV(LospKeyValueNode kv, int depth, StringBuilder sb)
@@ -68,7 +54,7 @@ namespace chebwa.Losp
 				}
 				if (kv.Children.Count > 0)
 				{
-					WriteChildren(kv.Children, depth, sb);
+					WriteChildren(kv.Children, depth + 1, sb);
 				}
 
 				WriteIndent(sb, depth).AppendLine("}");
@@ -84,7 +70,7 @@ namespace chebwa.Losp
 			else
 			{
 				WriteIndent(sb, depth).AppendLine("[");
-				WriteChildren(list.Children, depth, sb);
+				WriteChildren(list.Children, depth + 1, sb);
 				WriteIndent(sb, depth).AppendLine("]");
 			}
 		}
@@ -117,18 +103,18 @@ namespace chebwa.Losp
 				}
 				if (obj.Children.Count > 0)
 				{
-					WriteChildren(obj.Children, depth, sb);
+					WriteChildren(obj.Children, depth + 1, sb);
 				}
 
 				WriteIndent(sb, depth).AppendLine("}}");
 			}
 		}
 
-		static void WriteChildren(LospChildCollection children, int parentDepth, StringBuilder sb)
+		static void WriteChildren(LospChildCollection children, int depth, StringBuilder sb)
 		{
 			foreach (var child in children)
 			{
-				WriteNode(child, parentDepth, sb);
+				WriteNode(child, depth, sb);
 			}
 		}
 
@@ -137,51 +123,54 @@ namespace chebwa.Losp
 			return WriteNode(node, 0, sb);
 		}
 
-		public static StringBuilder WriteNode(LospNode node, int parentDepth, StringBuilder? sb = null)
+		public static StringBuilder WriteNode(LospNode node, int depth, StringBuilder? sb = null)
 		{
 			sb ??= new();
 
 			if (node is LospOperatorNode op)
 			{
-				WriteOperator(op, parentDepth + 1, sb);
-			}
-			else if (node is LospFilterNode filter)
-			{
-				WriteFilter(filter, parentDepth + 1, sb);
+				WriteOperator(op, depth, sb);
 			}
 			else if (node is LospListNode list)
 			{
-				WriteList(list, parentDepth + 1, sb);
+				WriteList(list, depth, sb);
 			}
 			else if (node is LospObjectLiteralNode obj)
 			{
-				WriteObject(obj, parentDepth + 1, sb);
+				WriteObject(obj, depth, sb);
 			}
 			else if (node is LospKeyValueNode kv)
 			{
-				WriteKV(kv, parentDepth + 1, sb);
+				WriteKV(kv, depth, sb);
 			}
 			else if (node is LospFunctionNode func)
 			{
-				WriteFunction(func, parentDepth + 1, sb);
+				WriteFunction(func, depth, sb);
 			}
 			else if (node is LospLiteralNode data)
 			{
-				WriteIndent(sb, parentDepth + 1)
-					.AppendLine(Indent + data.Data.BoxedValue?.ToString() ?? "");
+				WriteIndent(sb, depth);
+				WriteValue(data.Data, sb).AppendLine();
 			}
 			else if (node is LospIdentifierNode id)
 			{
-				WriteIndent(sb, parentDepth + 1)
-					.AppendLine(Indent + id.Name);
+				WriteIndent(sb, depth)
+					.AppendLine(id.Name);
 			}
 			else
 			{
-				WriteIndent(sb, parentDepth + 1)
-					.AppendLine(Indent + node.Type.ToString());
+				WriteIndent(sb, depth)
+					.AppendLine(node.Type.ToString());
 			}
 
 			return sb;
+		}
+
+		public static StringBuilder WriteValue(LospValue value, StringBuilder sb)
+		{
+			if (value == null || value is LospNull || value.BoxedValue == null) return sb.Append("null");
+			else if (value.BoxedValue is string str) return sb.Append('"').Append(str).Append('"');
+			else return sb.Append(value.BoxedValue.ToString());
 		}
 
 		/// <summary>
@@ -211,7 +200,7 @@ namespace chebwa.Losp
 						{
 							return WriteValue(list[0], underlyingValueOnly);
 						}
-						return "[" + string.Join(", ", vr.Values.Select(v => WriteValue(v, underlyingValueOnly))) + "]";
+						return "[" + string.Join(", ", list.Select(v => WriteValue(v, underlyingValueOnly))) + "]";
 					}
 				case LospErrorResult er:
 					var str = (er.Source is LospOperatorNode op ? op.NodeId + ": " : string.Empty) + er.Message;
@@ -310,6 +299,7 @@ namespace chebwa.Losp
 		}
 		private static void ReturnList(List<string> list)
 		{
+			list.Clear();
 			for (var i = 0; i < _reusableStringLists.Count; i++)
 			{
 				if (_reusableStringLists[i].List == list)

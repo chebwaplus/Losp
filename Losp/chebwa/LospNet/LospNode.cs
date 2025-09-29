@@ -87,33 +87,6 @@ namespace chebwa.LospNet
 	}
 
 	/// <summary>
-	/// A <see cref="LospFilterNode"/> functions nearly identically to a
-	/// <see cref="LospOperatorNode"/>, with two notable and related differences. First,
-	/// filters may be <em>chained</em>, in which the output from one filter is passed
-	/// to the next in the chain sequence. Second, as alluded to, the primary value on
-	/// which the filter operates is supplied by its parent node <em>or</em> by the
-	/// preceding filter node in the chain. Whereas all parameters of a
-	/// <see cref="LospOperatorNode"/> come from child nodes, filters rely on their
-	/// context.
-	/// </summary>
-	/// <param name="chained"></param>
-	public class LospFilterNode(bool chained) : LospNode()
-	{
-		public override LospNodeType Type => LospNodeType.Filter;
-		public readonly LospFilterPosition FilterPosition
-			= chained
-			? LospFilterPosition.Chain
-			: LospFilterPosition.Head;
-
-		/// <summary>
-		/// The next filter in the chain sequence, if any.
-		/// </summary>
-		public LospFilterNode? NextFilter = null;
-
-		public override LospChildCollection Children { get; } = [];
-	}
-
-	/// <summary>
 	/// A node which allows a parent <see cref="LospNode"/> to associate one or more
 	/// values (derived from the nodes in <see cref="Children"/>) with a key string, as
 	/// provided by <see cref="Key"/>.
@@ -128,7 +101,7 @@ namespace chebwa.LospNet
 
 	/// <summary>
 	/// A context-dependent identifier. This may, for example, be the name of a
-	/// <see cref="LospOperatorNode"/> or <see cref="LospFilterNode"/>, or it may be
+	/// <see cref="LospOperatorNode"/> or <see cref="LospKeyValueNode"/>, or it may be
 	/// the name of a variable to be retrieved or assigned.
 	/// </summary>
 	/// <param name="token">The source token which defines the id string.</param>
