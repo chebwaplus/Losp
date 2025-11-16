@@ -1,5 +1,6 @@
 ﻿// SPDX-License-Identifier: MIT
 
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
 namespace chebwa.LospNet
@@ -242,13 +243,24 @@ namespace chebwa.LospNet
 			return "LospValue<string> " + Value;
 		}
 	}
-	public sealed record LospList(IEnumerable<LospValue> Value) : LospValue<IEnumerable<LospValue>>(Value ?? [])
+	public sealed record LospList(IEnumerable<LospValue> Value) : LospValue<IEnumerable<LospValue>>(Value ?? []), IEnumerable<LospValue>
 	{
 		public override string ToString()
 		{
 			return "IEnumerable<LospValue> " + string.Join(", ", (Value ?? []).Select(v => v.ToString()));
 		}
+
+		IEnumerator<LospValue> IEnumerable<LospValue>.GetEnumerator()
+		{
+			return (Value ?? []).GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return (Value ?? []).GetEnumerator();
+		}
 	}
+
 	public sealed record LospScriptable(IScriptObject Value) : LospValue<IScriptObject>(Value)
 	{
 		public override bool TryGetObjectLiteral([NotNullWhen(true)] out LospObjectLiteral? literal)

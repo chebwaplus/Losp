@@ -157,11 +157,60 @@ namespace chebwa.LospNet
 			this[key] = value;
 		}
 
+		/// <summary>
+		/// <para>
+		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
+		/// Used if you are unsure which type of <see cref="LospValue"/> will be returned.
+		/// </para>
+		/// <para>
+		/// If you know the type of the value contained in the <see cref="LospValue"/>,
+		/// consider using <see cref="TryKeyValueAs{T}(string, out T)"/> instead to
+		/// retrieve that value directly, instead of inside the <see cref="LospValue"/>
+		/// wrapper.
+		/// </para>
+		/// <para>
+		/// If you know the specific <see cref="LospValue"/> type and want the wrapper
+		/// itself, consider using <see cref="TryKeyAs{T}(string, out T)"/> to retrieve
+		/// that specific wrapper type.
+		/// </para>
+		/// <para>
+		/// In some cases, such as with a <see cref="LospList"/>, it may be more
+		/// convenient to use <see cref="TryKeyAs{T}(string, out T)"/> instead of
+		/// <see cref="TryKeyValueAs{T}(string, out T)"/>. Consider:
+		/// <code>
+		/// obj.TryKeyAs&lt;LospList&gt;("key", out var list);
+		/// </code>
+		/// versus:
+		/// <code>
+		/// obj.TryKeyAsValue&lt;IEnumerable&lt;LospValue&gt;&gt;("key", out var list);
+		/// </code>
+		/// </para>
+		/// </summary>
+		/// <param name="key">The key associated with the value to retrieve.</param>
+		/// <param name="value">The value, if any exists.</param>
+		/// <returns>A value indicating whether a value was retrieved.</returns>
 		public bool TryKey(string key, [NotNullWhen(true)] out LospValue? value)
 		{
 			return Map.TryGetValue(key, out value);
 		}
-		public bool TryKeyAs<T>(string key, [NotNullWhen(true)] out LospValue<T>? value)
+		/// <summary>
+		/// <para>
+		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
+		/// Used if you know the specific <see cref="LospValue"/> type that will be returned.
+		/// </para>
+		/// <para>
+		/// Use <see cref="TryKeyValueAs{T}(string, out T)"/> if you instead want
+		/// to retrieve the type <i>inside</i> the <see cref="LospValue"/> instead of the
+		/// <see cref="LospValue"/> wrapper itself. Note that using <see cref="TryKeyAs{T}(string, out T)"/>
+		/// for e.g. a <see cref="LospList"/> can be more ergonomic.
+		/// </para>
+		/// </summary>
+		/// <typeparam name="T">The <see cref="LospValue"/> type to be retrieved.</typeparam>
+		/// <param name="key">The key associated with the value to retrieve.</param>
+		/// <param name="value">The value, if any exists.</param>
+		/// <returns>A value indicating whether a <see cref="LospValue"/> of the desired
+		/// type was retrieved.</returns>
+		public bool TryKeyAs<T>(string key, [NotNullWhen(true)] out T? value) where T : LospValue
 		{
 			if (!TryKey(key, out var val))
 			{
@@ -169,13 +218,48 @@ namespace chebwa.LospNet
 				return false;
 			}
 
-			if (val is not LospValue<T> valT)
+			if (val is not T valT)
 			{
 				value = null;
 				return false;
 			}
 
 			value = valT;
+			return true;
+		}
+		/// <summary>
+		/// <para>
+		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
+		/// Used if you know the specific type stored inside the <see cref="LospValue"/>
+		/// associated with the <paramref name="key"/> and want that value directly
+		/// instead of the <see cref="LospValue"/> wrapper.
+		/// </para>
+		/// <para>
+		/// Use <see cref="TryKeyAs{T}(string, out T)"/> if you instead know and want
+		/// the type of <see cref="LospValue"/> wrapper instead. Note that using
+		/// <see cref="TryKeyAs{T}(string, out T)"/> for e.g. a <see cref="LospList"/>
+		/// can be more ergonomic.
+		/// </para>
+		/// </summary>
+		/// <typeparam name="T">The value type to be retrieved.</typeparam>
+		/// <param name="key">The key associated with the value to retrieve.</param>
+		/// <param name="value">The value, if any exists.</param>
+		/// <returns>A value indicating whether a value of the desired type was retrieved.</returns>
+		public bool TryKeyValueAs<T>(string key, [MaybeNullWhen(true)] out T? value)
+		{
+			if (!TryKey(key, out var val))
+			{
+				value = default;
+				return false;
+			}
+
+			if (val is not LospValue<T> valT)
+			{
+				value = default;
+				return false;
+			}
+
+			value = valT.Value;
 			return true;
 		}
 
