@@ -4,6 +4,13 @@ A list of native operators and special operators is TODO; apologies.
 
 # The Basics
 
+> In this documentation, some examples are given that depict two lines: the first starts with a less-than symbol (`<`), and the second with a greater-than symbol (`>`). For example:
+> ```
+> < (+ 1 1)
+> > 2
+> ```
+> In these cases, the first line represents an input prompt to a hypothetical REPL, and the second represents the output of the evaluated result of the expression.
+
 ## Syntax
 
 ### Whitespace
@@ -39,7 +46,7 @@ Large object literals, and keyed values that are themselves object literals, are
 		{ lists true }
 		{ cons-cells false }
 		{ TCO false }
-		{ hamburgers false } // but host apps can!
+		{ hamburgers false } // but host apps can (and should?) support them!
 	}
 }}
 ```
@@ -50,7 +57,7 @@ Losp supports literals for integers, floats, Booleans, and strings.
 
 Support for integer literals is basically anything that C# will parse as an `int`: `0 6 -100`.
 
-Support for float literals is basically anything that C# will parse as an `float` *but doesn't parse as an `int`*. This is because Losp will first attempt to parse a value as an `int` and will only try to parse it as a `float` if unsuccessful. In practice, this means floats should have the decimal dot to disambiguate them from `int`s: `0.0 6.1 -100.55545567`. The dot is *required* and is culture-invariant; a comma or any other separator cannot be used.
+Support for float literals is basically anything that C# will parse as an `float` *but doesn't parse as an `int`*. This is because Losp will first attempt to parse a value as an `int` and will only try to parse it as a `float` if unsuccessful. In practice, this means floats should have the decimal dot to disambiguate them from `float` values: `0.0 6.1 -100.55545567`. The dot is *required* and is culture-invariant; a comma or any other separator cannot be used.
 
 The supported Boolean literals are `true` and `false`, both case-sensitive.
 
@@ -111,7 +118,7 @@ Losp supports object literals, analogous to object literals in JavaScript and JS
 
 Object literals are defined by enclosing double-curly-brackets. Keyed values are defined by single-curly-brackets.
 
-An bare example:
+A bare example:
 
 ```
 {{
@@ -129,7 +136,7 @@ Keyed values can be used in one of three basic ways. The typical use is in `{ ke
 
 Keys without a value implicitly evaluate to `true`. Therefore, `{ flag-type-key }` above is short for `{ flag-type-key true }`.
 
-Finally, a keyed value can have its own keyed values. If a keyed value has *any* keyed value, all unkeyed values are ignored. When a keyed value has its own keyed values, it is evaluated as its own object literal. The following examples are equivalent.
+Finally, a keyed value can have its own keyed values. If a keyed value has *any* keyed value, all unkeyed values are ignored. Tags (see below) are an exception, as they are retained. When a keyed value has its own keyed values, it is evaluated as its own object literal. The following examples are equivalent.
 
 ```
 {{
@@ -168,6 +175,16 @@ Object literals also support *tags*, which are exclusive to object literals. Tag
 	#lang-description
 	{ name "Losp" }
 	{ data-types ["literal" "list" "object literal" "lambda"] }
+}}
+```
+
+An object literal can have multiple tags, although the first is accessible via API as the `HeadTag`. The head tag is still included in the list of all `Tags`.
+
+```
+{{
+	#primary-tag // becomes the head tag
+	#another-tag
+	#hamburger-enjoyer
 }}
 ```
 
@@ -240,7 +257,7 @@ Lambdas returned to the host app can also be invoked with values from the app as
 
 ### Filters
 
-A filter combines a lambda and an operator. Lambdas are created with the `#` special operator but are defined almost like a normal operator. They must be used with operators that return a boolean value.
+A filter combines a lambda and an operator. Filters are created with the `#` special operator but are defined almost like a normal operator. They must be used with operators that return a boolean value.
 
 ```
 < #(== 1)
@@ -287,6 +304,8 @@ Because of how [keyed arguments](#keyed-values-in-operators) are typically handl
 
 ... TODO (talk about emitted values, esp. when zero or multiple values are emitted)
 
+(... or [see below](#emitting-values), where this is discussed from the API side)
+
 # API
 
 ## Parsing and Evaluating
@@ -310,7 +329,7 @@ var result = Losp.Eval(ast);
 
 Evaluating a Losp expression can result in three `EvalResult` types: `LospValueResult`, `LospAsyncResult`, and `LospErrorResult`.
 
-To get it out of the way first, an `LospErrorResult` will be returned if there is an evaluation error (e.g. the arguments to an operator were not of the correct type, or a symbol could not be resolved). If `Losp.Eval()` is called with a source string, any exception is caught and wrapped in an `LospErrorResult`.
+To get it out of the way first, an `LospErrorResult` will be returned if there is an evaluation error (e.g. the arguments to an operator were not of the correct type, or a symbol could not be resolved). If `Losp.Eval()` is called with a source string, any parse exception is caught and wrapped in an `LospErrorResult`, in addition to exceptions caught during evaluation.
 
 ### Async Evaluation
 
@@ -374,9 +393,72 @@ To emphasize the consequence of this: if multiple operators in a Losp script tri
 
 > \* `AsyncResult` is the internal equivalent to `LospAsyncResult`.
 
+### Mostly Complete Evaluation Example
+
+Synchronous:
+
+```csharp
+var result = Losp.Eval(source);
+
+if (result is LospErrorResult er)
+{
+	Console.WriteLine("error evaluating Losp input: " + er.Message);
+}
+else if (result is LospAsyncResult ar)
+{
+	ar.OnAsyncComplete(asyncResult => {
+		// handle async result here
+		// asyncResult can be a LospValueResult
+		// or a LospErrorResult, but not
+		// a LospAsyncResult
+	});
+}
+else if (result is LospValueResult vr)
+{
+	if (vr.Type == ResultType.SuccessNoEmit)
+	{
+		Console.WriteLine("Losp input evaluated; no values emitted");
+	}
+	else // Type == ResultType.SuccessEmit
+	{
+		Console.WriteLine("Losp input evaluated");
+		foreach (var val in vr.Values)
+		{
+			Console.WriteLine($" {val.Value}");
+		}
+	}
+}
+```
+
+Asynchronous:
+
+```csharp
+var result = await Losp.EvalAsync(source);
+
+if (result is LospErrorResult er)
+{
+	Console.WriteLine("error evaluating Losp input: " + er.Message);
+}
+else if (result is LospValueResult vr)
+{
+	if (vr.Type == ResultType.SuccessNoEmit)
+	{
+		Console.WriteLine("Losp input evaluated; no values emitted");
+	}
+	else // Type == ResultType.SuccessEmit
+	{
+		Console.WriteLine("Losp input evaluated");
+		foreach (var val in vr.Values)
+		{
+			Console.WriteLine($" {val.Value}");
+		}
+	}
+}
+```
+
 ## Losp Values
 
-Values in Losp are wrapped in a subclass of `LospValue`. Each literal has its own type (e.g. `LospInt` which is a `LospValue<int>`, `LospBool` which is a `LospValue<bool>`, etc.).
+Values in Losp are wrapped in a subclass of `LospValue`. Each literal has its own type (e.g. `LospInt` which is a `LospValue<int>`, `LospBool` which is a `LospValue<bool>`, etc.). The native, wrapped value is provided through the `Value` property.
 
 Lists are `LospList`, which is a `LospValue<IEnumerable<LospValue>>`. Lambdas are `LospFunc`, which is a `LospValue<LospLambda>`. Null values are represented by `LospNull` which is a `LospValue<object>`.
 
@@ -388,16 +470,58 @@ Host apps can also pass any value to Losp using `LospExtrinsic<T>`. This class p
 
 ### Creating
 
-If you know your data type, and it's a native Losp type, you can create its enclosing `LospValue` directly, e.g. `new LospInt(5)` or `new LospString("interesting text")`. If you don't know the type, you can call `LospValue.Convert()` with the value, and it will attempt to create the correct `LospValue` type. `Convert()` cannot create a `LospExtrinsic`, however, as a type parameter is required. If an unsupported type is passed to `Convert()`, an exception is throw.
+There are several ways to instatiate a `LospValue`, but it depends on the type you have. A summary chart is provided below.
+
+If you know your data type, and it's a native Losp type, you can create its enclosing `LospValue` directly, using e.g. `new LospInt(5)` or `new LospString("interesting text")`. If you don't know the type but know it is a native type, you can call `LospValue.Convert()` with the value, and it will attempt to create the correct `LospValue` type. `Convert()` cannot create a `LospExtrinsic`, however, as a type parameter is required for extrinsics. If an unsupported type is passed to `Convert()`, an exception is throw. `TryConvert()` can be used to prevent the exception; it will simply return `null` if conversion fails.
 
 `Convert()` will cast or convert some types, which is important to know if this behavior is not desired. `char` is converted to `string`, `uint` is cast to `int`, and `double` is cast to `float`.
+
+`Extrinsic<T>()` will throw an error if a native Losp type is provided. Primarily, this is used to ensure e.g. `LospInt` is always used for `int` types, and so on. `Convert<T>()` can be used in cases where the type is known at runtime but not at compile time, and may or may not be an extrinsic type.
+
+<table>
+<thead>
+<th>value type</td>
+<th>instantiation method</td>
+</thead>
+<tbody>
+<tr>
+<td>known native Losp type</td>
+<td>constructor for type</td>
+</tr>
+<tr>
+<td>unknown native Losp type</td>
+<td>
+
+`LospValue.Convert()`
+</td>
+</tr>
+<tr>
+<td>extrinsic type</td>
+<td>
+
+`LospValue.Extrinsic<T>()`</td>
+</tr>
+<tr>
+<td>native or extrinsic type</td>
+<td>
+
+`LospValue.Convert<T>()`</td>
+</tr>
+<tr>
+<td>unknown native or extrinsic type; extrinsics should be ignored without error</td>
+<td>
+
+`LospValue.TryConvert()`</td>
+</tr>
+</tbody>
+</table>
 
 ### Inspection
 
 In simple scenarios (e.g. with value types or strings), the type of a `LospValue` can be evaluated with the C# `is` operator.
 
 ```csharp
-if (value is LospValue<int> i)
+if (value is LospValue<int> i) // or `value is LospInt i`
 {
 	// i.Value is an int
 }
@@ -407,9 +531,9 @@ You can also use pattern matching in a `switch` expression.
 
 ```csharp
 return value switch {
-	LospValue<int> i => i.Value.ToString(),
-	LospValue<float> f => f.Value.ToString(),
-	LospValue<string> s => s.Value,
+	LospInt i => i.Value.ToString(),
+	LospFloat f => f.Value.ToString(),
+	LospString s => s.Value,
 	_ => "unsupported type",
 };
 ```
@@ -421,12 +545,15 @@ public class Monster() : Creature();
 
 // ...
 
-// `value` is a `LospExtrinsic<Creature>` (and thus a `LospValue<Creature>`);
-// `value is LospValue<Monster>` wouldn't work,
-// since `LospValue<Creature>` can't be cast to `LospValue<Monster>`
+LospExtrinsic<Creature> value; //
+// ... `value` is assigned an value ...
+
+// `LospExtrinsic<Creature>` can be cast to `LospValue<Creature>`
+// but not to `LospValue<Monster>`.
+// `TryGetNonNull()` can be used for such cases
 if (value.TryGetNonNull(out Monster monster))
 {
-	// value stores a Monster
+	// `monster` guaranteed to be a non-null Monster instance
 }
 ```
 
@@ -478,9 +605,9 @@ Also look at `ErrorResultHelper` for some standard error messages regarding unsu
 
 Internally, within the evaluation process, `EvalResult` types are used instead of `LospResult` types. `LospResult` and its subclasses are only used at the top level. Each `LospResult` type discussed so far is analogous to an `EvalResult` type:
 
-* `LospValueResult` => `ValueResult`
-* `LospErrorResult` => `ErrorResult`
-* `LospAsyncResult` => `AsyncResult`
+* `LospValueResult` ⇒ `ValueResult`
+* `LospErrorResult` ⇒ `ErrorResult`
+* `LospAsyncResult` ⇒ `AsyncResult`
 
 As described in [Parsing and Evaluating](#parsing-and-evaluating), an operator can return one of multiple `EvalResult` types. When implementing `IScriptOperator`, it is your responsibility to return the correct type. Typically this is straightforward.
 
@@ -542,7 +669,7 @@ The API also provides some options: `ValueResult` provides a `FirstOrDefault()` 
 
 Perhaps you are wondering: why are they called `SingleOrNone()` and `MultipleOrNone()`, and not just `Single()` and `Multiple()`? This is to emphasize that these functions can still drop back to `None()` in certain circumstances. If `SingleOrNone()` is called with a `null`, it will fall back to `None()`. If `MultipleOrNone()` is called with a `null`, or with an empty list, it will fall back to `None()`.
 
-`ValueResult` needs to ensure that when its type is `ResultType.SuccessEmit`, there is in fact at least one value in its list. Code and logic errors that result in unexpected `null` values, or in lists that are unexpectedly empty, have to be accounted for. Losp *may*, in the future, support a flag for a more strict evaluation model that will throw an error instead, but currently the model is to be as relaxed in these cases.
+`ValueResult` needs to ensure that when its type is `ResultType.SuccessEmit`, there is in fact at least one value in its list. Code and logic errors that result in unexpected `null` values, or in lists that are unexpectedly empty, have to be accounted for. Losp *may*, in the future, support a flag for a more strict evaluation model that will throw an error instead, but currently the model is to be relaxed in these cases.
 
 > As a point of clarification, calling `SingleOrNone(null)` is equivalent to `None()` and no value will be emitted, whereas calling `SingleOrNone(new LospNull())` will emit the value as expected. `LospNull` is a valid `LospValue` type. `null` is just `null`, in C# land anyway.
 
