@@ -1,6 +1,8 @@
 # About Losp
 
-*Losp* is a Lisp-adjacent scripting language with an interpreter written in C#. Its intended use case is game scripting. It has syntactic support for lists and object literals; as such it may be considered closer to something like Clojure. The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
+*Losp* is a work-in-progress, Lisp-adjacent scripting language with an interpreter written in C#. Its intended use case is game scripting.
+
+Losp has syntactic support for lists and object literals; as such it may be considered closer to something like Clojure. The host app can register operators to expand and customize its operator library. Purists looking for a Lisp that adheres strictly to Lisp dogma will likely be disappointed; there's no concept of cons cells, there's no integral support for tail call optimization. There *is* a concept analogous to special forms, here just called *special operators*.
 
 ## What It Looks Like
 
