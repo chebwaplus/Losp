@@ -38,7 +38,6 @@ namespace chebwa.LospNet
 		internal static readonly Dictionary<string, ISpecialOperator> SpecialOperators = [];
 		internal static readonly Dictionary<string, IScriptOperator> StandardOperators = [];
 
-		internal const string LospSpecialOperatorPrefix = "LOSP:SP:";
 		public const string LospAssignmentOpName = "=";
 		public const string LospIfOpName = "IF";
 		public const string LospForOpName = "FOR";
@@ -70,6 +69,7 @@ namespace chebwa.LospNet
 
 			// objects
 			StandardOperators["."] = new PropertyOperator();
+			StandardOperators["MERGE"] = new MergeOperator();
 			// COUNT also works on the keys of object literals
 
 			// math

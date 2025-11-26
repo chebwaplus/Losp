@@ -2,6 +2,15 @@
 
 namespace chebwa.LospNet.Operators
 {
+	/// <summary>
+	/// Example:
+	/// <code>IF((&lt; val 0.5) 0 1) // rounds a value </code>
+	/// The first argument is a condition expression. The
+	/// second argument is an expression that is evaluated and emitted if the condition
+	/// is <see langword="true"/>. The second argument, which is optional, is an
+	/// expression that is evaluated and emitted if the condition is any value except
+	/// <see langword="true"/>.
+	/// </summary>
 	public class IfOperator : ISpecialOperator
 	{
 		public LospSpecialOperatorNode Prepare(LospOperatorNode op)
