@@ -227,6 +227,8 @@ namespace chebwa.LospNet
 			value = valT;
 			return true;
 		}
+		//TODO: I believe this is equivalent to ScriptObjectExt.TryKeyOf()
+		// so get rid of one? probably this one?
 		/// <summary>
 		/// <para>
 		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
