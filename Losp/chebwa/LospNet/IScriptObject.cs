@@ -71,7 +71,16 @@ namespace chebwa.LospNet
 		/// </summary>
 		/// <param name="key">The key name associated with the value.</param>
 		LospValue? Get(string key);
-		void Set(string key, LospValue value);
+		/// <summary>
+		/// Attempts to store the <paramref name="value"/> using the <paramref name="key"/>.
+		/// Implementations are free to ignore or refuse to set a key or value, as long
+		/// as they return a result appropriately indicating whether the value was
+		/// applied.
+		/// </summary>
+		/// <param name="key">The key name associated with the value.</param>
+		/// <param name="value">The value to be applied.</param>
+		/// <returns>A value indicating whether the key/value pair was applied.</returns>
+		bool Set(string key, LospValue value);
 		/// <summary>
 		/// Attempts to retrieve the value associated with the <paramref name="key"/>.
 		/// </summary>
@@ -152,9 +161,10 @@ namespace chebwa.LospNet
 
 		public LospValue? Get(string key) => Map.TryGetValue(key, out var value) ? value : null;
 
-		public void Set(string key, LospValue value)
+		public bool Set(string key, LospValue value)
 		{
 			this[key] = value;
+			return true;
 		}
 
 		/// <summary>
@@ -316,12 +326,14 @@ namespace chebwa.LospNet
 			return value;
 		}
 
-		public void Set(string key, LospValue value)
+		public bool Set(string key, LospValue value)
 		{
 			if (_properties.TryGetValue(key, out var prop) && prop.Setter != null)
 			{
 				prop.Setter(value);
+				return true;
 			}
+			return false;
 		}
 
 		public bool TryKey(string key, [NotNullWhen(true)] out LospValue? value)
@@ -416,21 +428,23 @@ namespace chebwa.LospNet
 			return value;
 		}
 
-		public void Set(string key, LospValue value)
+		public bool Set(string key, LospValue value)
 		{
 			var propInfo = TType.GetProperty(key);
 			if (propInfo != null)
 			{
 				propInfo.SetValue(this, value);
-				return;
+				return true;
 			}
 
 			var fieldInfo = TType.GetField(key);
 			if (fieldInfo != null)
 			{
 				fieldInfo.SetValue(this, value);
-				return;
+				return true;
 			}
+
+			return false;
 		}
 
 		public bool TryKey(string key, [NotNullWhen(true)] out LospValue? value)
