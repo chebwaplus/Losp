@@ -25,6 +25,8 @@ namespace chebwa.LospNet.Operators
 
 			if (left.MatchesType(right))
 			{
+				// TODO: handle equatables for == and !=
+
 				if (left is LospBool b)
 				{
 					return ValueResult.SingleOrNone(PerformOp(op, b.Value, (bool)right.BoxedValue!));

@@ -158,7 +158,7 @@ namespace chebwa.LospNet
 			}
 			// handles namespaced standard operators that should not be overridden by a host app
 			else if (opName.StartsWith("LOSP:"))
-			{ 
+			{
 				return LospInternalContext.StandardOperators.TryGetValue(opName, out op);
 			}
 			else
@@ -224,7 +224,14 @@ namespace chebwa.LospNet
 		/// <returns>The result of evaluating the parsed input.</returns>
 		public static LospResult Eval(string input)
 		{
-			return Eval(Parse(input));
+			try
+			{
+				return Eval(Parse(input));
+			}
+			catch (Exception e)
+			{
+				return new LospErrorResult(new(null, e.Message));
+			}
 		}
 
 		private static readonly LospRunner _runner = new();

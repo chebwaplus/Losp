@@ -63,6 +63,7 @@ namespace chebwa.LospNet
 
 			// lists
 			StandardOperators["COUNT"] = new CountListOperator();
+			StandardOperators["IN"] = new InListOperator();
 			StandardOperators["ANY"] = AnyOperator.Instance;
 			StandardOperators["ALL"] = AllOperator.Instance;
 			StandardOperators["?"] = AllOperator.Instance;

@@ -80,7 +80,7 @@ namespace chebwa.LospNet
 		public static implicit operator LospValue(int value) => new LospInt(value);
 		public static implicit operator LospValue(float value) => new LospFloat(value);
 		public static implicit operator LospValue(bool value) => new LospBool(value);
-		public static implicit operator LospValue(string value) => new LospString(value);
+		public static implicit operator LospValue(string value) => value == null ? new LospNull() : new LospString(value);
 
 		/// <summary>
 		/// Compares the type of <paramref name="value"/> to known and supported
