@@ -109,9 +109,10 @@ namespace chebwa.LospNet
 		/// Attempts to retrieve the <see cref="LospValue"/> in the collection of
 		/// all <see cref="Values"/> at the given <paramref name="index"/>.
 		/// </summary>
-		/// <param name="index"></param>
-		/// <param name="value"></param>
-		/// <returns></returns>
+		/// <param name="index">The index of the desired <see cref="LospValue"/>.</param>
+		/// <param name="value">The retrieved <see cref="LospValue"/>, if successful.</param>
+		/// <returns>A value indicating whether the <paramref name="value"/> was
+		/// successfully retrieved.</returns>
 		public bool TryIndex(int index, [NotNullWhen(true)] out LospValue? value)
 		{
 			var ar = GetCachedArray();
@@ -124,6 +125,18 @@ namespace chebwa.LospNet
 			value = ar[index];
 			return true;
 		}
+		/// <summary>
+		/// Attempts to retrieve a value of type <typeparamref name="T"/> from the
+		/// <see cref="LospValue"/> at the given <paramref name="index"/>. (See also
+		/// <see cref="TryIndex(int, out LospValue?)"/>.) If no <see cref="LospValue"/>
+		/// is retrieved, or it does not store a value of type <typeparamref name="T"/>,
+		/// the method fails.
+		/// </summary>
+		/// <typeparam name="T">The desired type.</typeparam>
+		/// <param name="index">The index of the desired <see cref="LospValue"/>.</param>
+		/// <param name="value">The retrieved <typeparamref name="T"/>, if successful.</param>
+		/// <returns>A value indicating whether the <paramref name="value"/> was
+		/// successfully retrieved.</returns>
 		public bool TryIndexAs<T>(int index, [NotNullWhen(true)] out T? value)
 		{
 			if (TryIndex(index, out var val) && val.BoxedValue is T v)
@@ -259,6 +272,74 @@ namespace chebwa.LospNet
 
 			tuple = null;
 			return false;
+		}
+
+		/// <summary>
+		/// <para>
+		/// Attempts to cast all values in <see cref="Values"/> to <typeparamref name="T"/>
+		/// and provide the resulting array. All values must be castable to <typeparamref name="T"/>
+		/// for the method to succeed. Use when you assume and require that all returned
+		/// values must conform to a certain type.
+		/// </para>
+		/// <para>
+		/// If you instead want to gather all return values of a certain type, see also
+		/// <see cref="FilterAsList{T}"/>, which will create a list containing only values
+		/// of the desired type.
+		/// </para>
+		/// </summary>
+		/// <typeparam name="T">The desired type.</typeparam>
+		/// <param name="list">The list </param>
+		/// <returns>A value indicating whether the method was successful.</returns>
+		public bool TryAsList<T>([NotNullWhen(true)] out List<T>? list)
+		{
+			var ar = GetCachedArray();
+			for (var i = 0; i < ar.Length; i++)
+			{
+				if (ar[i].BoxedValue is not T)
+				{
+					list = null;
+					return false;
+				}
+			}
+
+			list = new(ar.Length);
+			for (var i = 0; i < ar.Length; i++)
+			{
+				list.Add((T)ar[i].BoxedValue!);
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// <para>
+		/// For each value in <see cref="Values"/>, if the value is castable to
+		/// <typeparamref name="T"/>, it is added to a new list which is then returned.
+		/// Therefore all values of type <typeparamref name="T"/>, and only those values,
+		/// are included in the returned list.
+		/// </para>
+		/// <para>
+		/// If you assume and require that all values must conform to type <typeparamref name="T"/>,
+		/// see also <see cref="TryAsList{T}(out List{T}?)"/>.
+		/// </para>
+		/// </summary>
+		/// <typeparam name="T">The desired type.</typeparam>
+		/// <returns>A list that contains all values of type <typeparamref name="T"/>.</returns>
+		public List<T> FilterAsList<T>()
+		{
+			var ar = GetCachedArray();
+			var list = new List<T>();
+
+			for (var i = 0; i < ar.Length; i++)
+			{
+				if (ar[i].BoxedValue is T v)
+				{
+					list.Add(v);
+				}
+			}
+
+			return list;
+
 		}
 
 		/// <summary>
@@ -412,13 +493,10 @@ namespace chebwa.LospNet
 		public IEnumerable<LospValue> Values => _result.Values;
 
 		/// <summary>
-		/// Creates a <see cref="ValueResult"/> with zero or more <paramref name="values"/>.
-		/// If <paramref name="values"/> contains at least one item, the result's
-		/// <see cref="EvalResult.Type"/> is set to <see cref="ResultType.SuccessEmit"/>;
-		/// otherwise, it is set to <see cref="ResultType.SuccessNoEmit"/>.
+		/// Creates a <see cref="LospValueResult"/> with zero or more <see cref="Values"/>.
+		/// All properties are derived from the underlying <paramref name="result"/>.
 		/// </summary>
-		/// <param name="values"></param>
-		/// <param name="key"></param>
+		/// <param name="result">The underlying <see cref="ValueResult"/>.</param>
 		internal LospValueResult(ValueResult result)
 			: base(result.Type)
 		{
@@ -470,6 +548,16 @@ namespace chebwa.LospNet
 		public bool TryAsTuple<T1, T2, T3, T4>([NotNullWhen(true)] out (T1, T2, T3, T4)? tuple)
 		{
 			return _result.TryAsTuple(out tuple);
+		}
+		/// <inheritdoc cref="ValueResult.TryAsList{T}(out List{T}?)"/>
+		public bool TryAsList<T>([NotNullWhen(true)] out List<T>? list)
+		{
+			return _result.TryAsList(out list);
+		}
+		/// <inheritdoc cref="ValueResult.FilterAsList{T}"/>
+		public List<T> FilterAsList<T>()
+		{
+			return _result.FilterAsList<T>();
 		}
 	}
 	/// <summary>
