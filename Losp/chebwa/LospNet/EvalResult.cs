@@ -97,6 +97,49 @@ namespace chebwa.LospNet
 		/// </summary>
 		public IEnumerable<LospValue> Values { get; init; }
 
+		private LospValue[]? _cachedArray;
+		private LospValue[] GetCachedArray()
+		{
+			return _cachedArray ??= [.. Values];
+		}
+
+		//TODO: standardize the Try..Of() and Try..As() naming conventions
+
+		/// <summary>
+		/// Attempts to retrieve the <see cref="LospValue"/> in the collection of
+		/// all <see cref="Values"/> at the given <paramref name="index"/>.
+		/// </summary>
+		/// <param name="index"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public bool TryIndex(int index, [NotNullWhen(true)] out LospValue? value)
+		{
+			var ar = GetCachedArray();
+			if (ar.Length < index)
+			{
+				value = null;
+				return false;
+			}
+
+			value = ar[index];
+			return true;
+		}
+		public bool TryIndexAs<T>(int index, [NotNullWhen(true)] out T? value)
+		{
+			if (TryIndex(index, out var val) && val.BoxedValue is T v)
+			{
+				value = v;
+				return true;
+			}
+
+			value = default;
+			return false;
+		}
+
+		/// <summary>
+		/// Returns the first value in the list of <see cref="Values"/>,
+		/// if there are more than zero. Otherwise, returns <see langword="null"/>.
+		/// </summary>
 		public LospValue? FirstOrDefault()
 		{
 			return Values.FirstOrDefault();
@@ -106,10 +149,27 @@ namespace chebwa.LospNet
 		/// When the return value is <see langword="true"/>, the <paramref name="last"/>
 		/// value was retrieved successfully; otherwise, it was not retrieved.
 		/// </summary>
-		public bool TryGetLast([NotNullWhen(true)] out LospValue? last)
+		public bool TryLast([NotNullWhen(true)] out LospValue? last)
 		{
 			last = Values.LastOrDefault();
 			return last != null;
+		}
+		/// <summary>
+		/// Attempts to retrieve the last value in the list of <see cref="Values"/>
+		/// and extract its inner value as the desired type, <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The expected type of the last emitted value.</typeparam>
+		/// <param name="last">The resulting value, if successful.</param>
+		/// <returns>A value indicating whether the value was successfully retrieved.</returns>
+		public bool TryLastAs<T>(out T? last)
+		{
+			if (TryLast(out var value))
+			{
+				return value.TryGet(out last);
+			}
+
+			last = default;
+			return false;
 		}
 		/// <summary>
 		/// Returns the last value in the list of <see cref="Values"/>,
@@ -118,6 +178,87 @@ namespace chebwa.LospNet
 		public LospValue? LastOrDefault()
 		{
 			return Values.LastOrDefault();
+		}
+
+		/// <summary>
+		/// Attempts to interpret the <see cref="Values"/> as a tuple of specific types.
+		/// If the elements of the <see cref="Values"/> match the desired types, the
+		/// resulting <see cref="ValueTuple{T1, T2}"/> is assigned to
+		/// <paramref name="tuple"/>.
+		/// </summary>
+		/// <typeparam name="T1">The first element type.</typeparam>
+		/// <typeparam name="T2">The second element type.</typeparam>
+		/// <param name="tuple">The result tuple, if successful.</param>
+		/// <returns>A value indicating whether a tuple of the desired types was created.</returns>
+		public bool TryAsTuple<T1, T2>([NotNullWhen(true)] out (T1, T2)? tuple)
+		{
+			var ar = GetCachedArray();
+			if (ar.Length >= 2 && ar[0].BoxedValue is T1 v1 && ar[1].BoxedValue is T2 v2)
+			{
+				tuple = (v1, v2);
+				return true;
+			}
+
+			tuple = null;
+			return false;
+		}
+
+		/// <summary>
+		/// Attempts to interpret the <see cref="Values"/> as a tuple of specific types.
+		/// If the elements of the <see cref="Values"/> match the desired types, the
+		/// resulting <see cref="ValueTuple{T1, T2, T3}"/> is assigned to
+		/// <paramref name="tuple"/>.
+		/// </summary>
+		/// <typeparam name="T1">The first element type.</typeparam>
+		/// <typeparam name="T2">The second element type.</typeparam>
+		/// <typeparam name="T3">The third element type.</typeparam>
+		/// <param name="tuple">The result tuple, if successful.</param>
+		/// <returns>A value indicating whether a tuple of the desired types was created.</returns>
+		public bool TryAsTuple<T1, T2, T3>([NotNullWhen(true)] out (T1, T2, T3)? tuple)
+		{
+			var ar = GetCachedArray();
+			if (ar.Length >= 3
+				&& ar[0].BoxedValue is T1 v1
+				&& ar[1].BoxedValue is T2 v2
+				&& ar[2].BoxedValue is T3 v3
+				)
+			{
+				tuple = (v1, v2, v3);
+				return true;
+			}
+
+			tuple = null;
+			return false;
+		}
+
+		/// <summary>
+		/// Attempts to interpret the <see cref="Values"/> as a tuple of specific types.
+		/// If the elements of the <see cref="Values"/> match the desired types, the
+		/// resulting <see cref="ValueTuple{T1, T2, T3, T4}"/> is assigned to
+		/// <paramref name="tuple"/>.
+		/// </summary>
+		/// <typeparam name="T1">The first element type.</typeparam>
+		/// <typeparam name="T2">The second element type.</typeparam>
+		/// <typeparam name="T3">The third element type.</typeparam>
+		/// <typeparam name="T4">The fourth element type.</typeparam>
+		/// <param name="tuple">The result tuple, if successful.</param>
+		/// <returns>A value indicating whether a tuple of the desired types was created.</returns>
+		public bool TryAsTuple<T1, T2, T3, T4>([NotNullWhen(true)] out (T1, T2, T3, T4)? tuple)
+		{
+			var ar = GetCachedArray();
+			if (ar.Length >= 4
+				&& ar[0].BoxedValue is T1 v1
+				&& ar[1].BoxedValue is T2 v2
+				&& ar[2].BoxedValue is T3 v3
+				&& ar[3].BoxedValue is T4 v4
+				)
+			{
+				tuple = (v1, v2, v3, v4);
+				return true;
+			}
+
+			tuple = null;
+			return false;
 		}
 
 		/// <summary>
@@ -259,14 +400,16 @@ namespace chebwa.LospNet
 	/// </summary>
 	public sealed record LospValueResult : LospTerminalResult
 	{
+		private readonly ValueResult _result;
+
 		/// <summary>
 		/// The key name associated with the <see cref="Values"/> of this result, if any.
 		/// </summary>
-		public string? Key { get; init; }
+		public string? Key => _result.Key;
 		/// <summary>
 		/// The zero or more <see cref="LospValue"/>s 
 		/// </summary>
-		public IEnumerable<LospValue> Values { get; init; }
+		public IEnumerable<LospValue> Values => _result.Values;
 
 		/// <summary>
 		/// Creates a <see cref="ValueResult"/> with zero or more <paramref name="values"/>.
@@ -279,34 +422,54 @@ namespace chebwa.LospNet
 		internal LospValueResult(ValueResult result)
 			: base(result.Type)
 		{
-			Key = result.Key;
-			Values = result.Values;
+			_result = result;
 		}
 
+		/// <inheritdoc cref="ValueResult.TryIndex(int, out LospValue?)"/>
+		public bool TryIndex(int index, out LospValue? value)
+		{
+			return _result.TryIndex(index, out value);
+		}
+		/// <inheritdoc cref="ValueResult.TryIndexAs{T}(int, out T)"/>
+		public bool TryIndexAs<T>(int index, [NotNullWhen(true)] out T? value)
+		{
+			return _result.TryIndexAs(index, out value);
+		}
+
+		/// <inheritdoc cref="ValueResult.FirstOrDefault"/>
 		public LospValue? FirstOrDefault()
 		{
-			return Values.FirstOrDefault();
+			return _result.FirstOrDefault();
 		}
-		/// <inheritdoc cref="ValueResult.TryGetLast(out LospValue?)"/>
-		public bool TryGetLast([NotNullWhen(true)] out LospValue? last)
+		/// <inheritdoc cref="ValueResult.TryLast(out LospValue?)"/>
+		public bool TryLast([NotNullWhen(true)] out LospValue? last)
 		{
-			last = Values.LastOrDefault();
-			return last != null;
+			return _result.TryLast(out last);
 		}
-		public bool TryGetLastAs<T>(out T? last)
+		/// <inheritdoc cref="ValueResult.TryLastAs{T}(out T)"/>
+		public bool TryLastAs<T>(out T? last)
 		{
-			if (TryGetLast(out var value))
-			{
-				return value.TryGet(out last);
-			}
-
-			last = default;
-			return false;
+			return _result.TryLastAs(out last);
 		}
 		/// <inheritdoc cref="ValueResult.LastOrDefault"/>
 		public LospValue? LastOrDefault()
 		{
-			return Values.LastOrDefault();
+			return _result.LastOrDefault();
+		}
+		/// <inheritdoc cref="ValueResult.TryAsTuple{T1, T2}(out ValueTuple{T1, T2}?)"/>
+		public bool TryAsTuple<T1, T2>([NotNullWhen(true)] out (T1, T2)? tuple)
+		{
+			return _result.TryAsTuple(out tuple);
+		}
+		/// <inheritdoc cref="ValueResult.TryAsTuple{T1, T2, T3}(out ValueTuple{T1, T2, T3}?)"/>
+		public bool TryAsTuple<T1, T2, T3>([NotNullWhen(true)] out (T1, T2, T3)? tuple)
+		{
+			return _result.TryAsTuple(out tuple);
+		}
+		/// <inheritdoc cref="ValueResult.TryAsTuple{T1, T2, T3, T4}(out ValueTuple{T1, T2, T3, T4}?)"/>
+		public bool TryAsTuple<T1, T2, T3, T4>([NotNullWhen(true)] out (T1, T2, T3, T4)? tuple)
+		{
+			return _result.TryAsTuple(out tuple);
 		}
 	}
 	/// <summary>
