@@ -17,7 +17,7 @@ namespace chebwa.LospNet.Operators
 		{
 			if (op.Children.Count < 2)
 			{
-				throw new Exception("TODO");
+				throw new Exception(op.NodeId + ": at least 2 arguments required (1: condition node; 2: then branch)");
 			}
 
 			var cond = op.Children[0];
