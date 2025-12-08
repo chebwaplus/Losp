@@ -4,6 +4,15 @@ namespace chebwa.LospNet.Operators
 {
 
 	/// <summary>
+	/// <code>
+	/// // values must be an int or float
+	/// 
+	/// ++((+ 6 4)) // returns 11
+	/// ++(var) // increments var, returns the incremented value
+	/// 
+	/// --((* 3 4)) // returns 11
+	/// --(var) // decrements var, returns the decremented value
+	/// </code>
 	/// An operator that increments or decrements a value either from a variable or from
 	/// the result of a child operator. Other child types (literals, lists) are not
 	/// supported. If operating on a variable, the resulting value is reapplied to

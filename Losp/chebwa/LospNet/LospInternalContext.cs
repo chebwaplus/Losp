@@ -67,6 +67,7 @@ namespace chebwa.LospNet
 			StandardOperators["ANY"] = AnyOperator.Instance;
 			StandardOperators["ALL"] = AllOperator.Instance;
 			StandardOperators["?"] = AllOperator.Instance;
+			StandardOperators["ANY-IN"] = new AnyInOperator();
 
 			// objects
 			StandardOperators["."] = new PropertyOperator();

@@ -64,5 +64,26 @@ namespace chebwa.LospNet
 		{
 			return new ErrorResult(op, $"expected a {nameof(LospSpecialOperatorNode)} when handling a special operator");
 		}
+
+		/// <summary>
+		/// Creates an <see cref="ErrorResult"/> for scenarios where an argument to
+		/// a <see cref="LospOperatorNode"/> is not the expected type. The
+		/// <paramref name="expectedType"/> can be a single type ("int") or can be written
+		/// as a set of types ("int, float, or bool").
+		/// </summary>
+		/// <param name="op">The associated <see cref="LospOperatorNode"/>.</param>
+		/// <param name="index">The index of the errant argument.</param>
+		/// <param name="expectedType">The expected type (or types) as a string descriptor.</param>
+		/// <param name="foundValue">The value found with the expected type.</param>
+		public static ErrorResult ArgNIsNotType(LospOperatorNode op, int index, string expectedType, LospValue foundValue)
+		{
+			var suffix = foundValue == null
+				? "instead, no value found"
+				: foundValue is LospNull
+					? "instead, found value of type null (LospNull)"
+					: "instead, found value of type " + foundValue.BoxedValue!.GetType().Name;
+
+			return new ErrorResult(op, $"expected an argument of type {expectedType} at index {index}; {suffix}");
+		}
 	}
 }

@@ -97,7 +97,7 @@ namespace chebwa.LospNet
 	}
 
 	/// <summary>
-	/// A abstract utility class designed to provide an implementation of
+	/// An abstract utility class designed to provide an implementation of
 	/// <see cref="IScriptObject"/> for otherwise lightweight classes without a lot of
 	/// plumbing. A class can extend <see cref="SelfLambdaScriptObject{T}"/> and
 	/// provide the necessary <see cref="TypedObject"/> and <see cref="LambdaProperties"/>

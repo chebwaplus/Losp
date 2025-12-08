@@ -504,7 +504,7 @@ namespace chebwa.LospNet
 		}
 
 		/// <inheritdoc cref="ValueResult.TryIndex(int, out LospValue?)"/>
-		public bool TryIndex(int index, out LospValue? value)
+		public bool TryIndex(int index, [NotNullWhen(true)] out LospValue? value)
 		{
 			return _result.TryIndex(index, out value);
 		}

@@ -3,6 +3,9 @@
 namespace chebwa.LospNet.Operators
 {
 	/// <summary>
+	/// <code>
+	/// (EXPAND [1 [2 3] 4])
+	/// </code>
 	/// Expands and flattens any list in the child results and emits each item as part
 	/// of the operator's results. For example, a collection of children results
 	/// <code>0, 1, [10, 20, 30], [12, 24], 2, 3</code> would be emitted as a flat

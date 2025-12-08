@@ -2,6 +2,25 @@
 
 namespace chebwa.LospNet.Operators
 {
+	/// <summary>
+	/// <code>
+	/// // determines if the value is false
+	/// (0 true)
+	/// 
+	/// // determines if the value is false-like
+	/// (~0 1)
+	/// 
+	/// // determines if the value is true
+	/// (1 true)
+	/// 
+	/// // determines if the value is true-like
+	/// (~1 1)
+	/// </code>
+	/// <para>
+	/// The important evaluation methods are <see cref="GetTrue(LospValue)"/> and
+	/// <see cref="GetTrueLike(LospValue)"/>.
+	/// </para>
+	/// </summary>
 	public class TruthinessOperator : IScriptOperator
 	{
 		public static readonly TruthinessOperator Instance = new();
@@ -43,6 +62,13 @@ namespace chebwa.LospNet.Operators
 			};
 		}
 
+		/// <summary>
+		/// Determines if the value of a <see cref="LospValue"/> is true. This includes
+		/// the exact value <see langword="true"/> as well as a list where all items
+		/// in the list are continued true (recursively). Any other value returns
+		/// <see langword="false"/>.
+		/// </summary>
+		/// <param name="value">The <see cref="LospValue"/> to evaluate.</param>
 		public static bool GetTrue(LospValue value)
 		{
 			return value switch
@@ -53,6 +79,18 @@ namespace chebwa.LospNet.Operators
 			};
 		}
 
+		/// <summary>
+		/// Determines if the value of a <see cref="LospValue"/> is "truthy". This includes:
+		/// <list type="bullet">
+		/// <item><c>true</c></item>
+		/// <item>any int or float that is not 0</item>
+		/// <item>any non-empty string</item>
+		/// <item>a list where all items in the list are true-like (recursively)</item>
+		/// </list>
+		/// Any of the above return <see langword="true"/>; otherwise <see langword="false"/>
+		/// is returned.
+		/// </summary>
+		/// <param name="value">The <see cref="LospValue"/> to evaluate.</param>
 		public static bool GetTrueLike(LospValue value)
 		{
 			return value switch
