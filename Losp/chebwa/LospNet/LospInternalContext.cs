@@ -102,8 +102,10 @@ namespace chebwa.LospNet
 			// strings
 			StandardOperators["CONCAT"] = new ConcatOperator();
 			StandardOperators["LINE"] = new LineOperator();
+			//TODO: do I want both STR and TO-STR?
+			StandardOperators["STR"] = ToStringOperator.Instance;
+			StandardOperators["TO-STR"] = ToStringOperator.Instance;
 			StandardOperators["STR-INT"] = new StrToIntOperator();
-			StandardOperators["TO-STR"] = new ToStringOperator();
 			StandardOperators[HasSubstringOperator.StartsWithOpName] = HasSubstringOperator.Instance;
 			StandardOperators[HasSubstringOperator.EndsWithOpName] = HasSubstringOperator.Instance;
 			StandardOperators[HasSubstringOperator.ContainsOpName] = HasSubstringOperator.Instance;
