@@ -205,41 +205,68 @@ namespace chebwa.LospNet
 
 		/// <summary>
 		/// Returns the index of the last character of the string (i.e. the index of the
-		/// closing quote character).
+		/// closing quote character). The <paramref name="index"/> points to the opening
+		/// quote character of the string, which the method uses to determine which
+		/// character closes the string.
 		/// </summary>
 		/// <param name="input">The full input string.</param>
-		/// <param name="i">The index of the first character of the string (i.e. the
+		/// <param name="index">The index of the first character of the string (i.e. the
 		/// index of the opening quote character).</param>
-		/// <exception cref="Exception">The character at <paramref name="i"/> is not a
+		/// <exception cref="Exception">The character at <paramref name="index"/> is not a
 		/// valid opening quote, or there is no matching closing quote character.</exception>
-		public static int ReadString(string input, int i)
+		public static int ReadString(string input, int index)
 		{
-			var start = i;
+			var start = index;
 			char quote;
 
-			if (input[i] == '"' || input[i] == '`')
+			if (input[index] == '"' || input[index] == '`')
 			{
-				quote = input[i];
-				i++;
+				quote = input[index];
+				index++;
 			}
 			else
 			{
 				throw new Exception($"not a quoted string at char {start}");
 			}
 
-			while (i < input.Length)
+			while (index < input.Length)
 			{
-				if (input[i] == quote)
+				if (input[index] == quote)
 				{
-					if (input[i - 1] != '\\')
+					if (!IsEscaped(input, index))
 					{
-						return i;
+						return index;
 					}
 				}
-				i++;
+				index++;
 			}
 
 			throw new Exception($"quoted string at char {start} did not terminate");
+		}
+
+		/// <summary>
+		/// Determines if a character is escaped by counting the number of backslashses
+		/// preceding it. If the count is odd, the character is escaped. The
+		/// <paramref name="index"/> is the position of the base character that may or
+		/// may not be escaped.
+		/// </summary>
+		/// <param name="input">The full input string.</param>
+		/// <param name="index">The position of the character whose preceding
+		/// backslashes will be counted.</param>
+		/// <returns>A value indicating whether the base character is escaped
+		/// via backslashes.</returns>
+		public static bool IsEscaped(string input, int index)
+		{
+			index--;
+			var count = 0;
+
+			while (index >= 0 && input[index] == '\\')
+			{
+				count++;
+				index--;
+			}
+
+			return count % 2 != 0;
 		}
 
 		/// <summary>

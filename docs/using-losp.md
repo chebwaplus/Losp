@@ -293,7 +293,7 @@ Filters are used in the same way as any other lambda. This example assigns two c
 > [<lambda> False False False True False True]
 ```
 
-Because of how [keyed arguments](#keyed-values-in-operators) are typically handled, they can be used with filters without issue.
+Because of how [keyed arguments](#keyed-values-in-operators) are typically handled, they can be used with filters without issue. In the example below, the `{i}` keyed parameter flags a case-insensitive match.
 
 ```
 < =(f #(STARTS {i} "Lo") % #(ENDS "sp")) (f "Losp") (f "losp") (f "LOSP")
@@ -472,7 +472,7 @@ Host apps can also pass any value to Losp using `LospExtrinsic<T>`. This class p
 
 There are several ways to instatiate a `LospValue`, but it depends on the type you have. A summary chart is provided below.
 
-If you know your data type, and it's a native Losp type, you can create its enclosing `LospValue` directly, using e.g. `new LospInt(5)` or `new LospString("interesting text")`. If you don't know the type but know it is a native type, you can call `LospValue.Convert()` with the value, and it will attempt to create the correct `LospValue` type. `Convert()` cannot create a `LospExtrinsic`, however, as a type parameter is required for extrinsics. If an unsupported type is passed to `Convert()`, an exception is throw. `TryConvert()` can be used to prevent the exception; it will simply return `null` if conversion fails.
+If you know your data type, and it's a native Losp type, you can create its enclosing `LospValue` directly, using e.g. `new LospInt(5)` or `new LospString("interesting text")`. If you don't know the type but know it is a native type, you can call `LospValue.Convert()` with the value, and it will attempt to create the correct `LospValue` type. `Convert()` cannot create a `LospExtrinsic`, however, as a type parameter is required for extrinsics. If an unsupported type is passed to `Convert()`, an exception is thrown. `TryConvert()` can be used to prevent the exception; it will simply return `null` if conversion fails.
 
 `Convert()` will cast or convert some types, which is important to know if this behavior is not desired. `char` is converted to `string`, `uint` is cast to `int`, and `double` is cast to `float`.
 
@@ -570,6 +570,12 @@ The `IScriptOperator` interface is very simple: it defines a `Run()` method that
 * `IScriptContext` - the context in which the operator is being run; mostly this provides a means to get and set variables. This is typically uncommon in `IScriptOperator`s, because all child expressions have already been evaluated, but useful for `ISpecialOperator`s.
 * `LospOperatorNode` - the node, part of the AST, describing the operator expression. Also not typically used, although inspecting the node's `Name` is sometimes useful if the handler is registered to multiple operator names.
 * `LospChildResultDataCollection` - the evaluated results of the operator's child expressions. This is where most of the action happens.
+
+The signature:
+
+```csharp
+EvalResult Run(IScriptContext context, LospOperatorNode op, LospChildResultDataCollection children);
+```
 
 #### Child Values
 
@@ -709,7 +715,7 @@ But clearly the `IF()` isn't done. Both "true" and "false" branches are still un
 
 As alluded to back under [Return Results](#return-results), there is one more `EvalResult` type available to operators. It is the `PushResult`. This provides a means for an operator to give the evaluator more nodes to evaluate. `PushResult` of course also accepts an `OnComplete` callback that the handler can use to receive the results.
 
-Unlike with `AsyncResult`, an operator is free to follow up a `PushResult` with any kind of `EvalResult`, including another `PushResult`. An operator may (but very much shouldn't) continually return `PushResult`s. In fact, this is how a loop like `FOR()` works; in turn, the loop condition is pushed, and--if the condition is true--the loop body is pushed, followed by the condition again, and so on. Much like any other sort of native loop, if a Losp loop doesn't complete, the host app is in for a bad time.
+Unlike with `AsyncResult`, an operator is free to follow up a `PushResult` with any kind of `EvalResult`, including another `PushResult`. An operator may (but usually shouldn't) continually return `PushResult`s. In fact, this is how a loop like `FOR()` works; in turn, the loop condition is pushed, and--if the condition is true--the loop body is pushed, followed by the condition again, and so on. Much like any other sort of native loop, if a Losp loop doesn't complete, the host app is in for a bad time.
 
 Although `PushResult` is available in standard operator contexts, it is typically not useful. For a standard operator, all of its children have already been evaluated by the time `Run()` is called.
 

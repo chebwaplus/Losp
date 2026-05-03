@@ -7,6 +7,22 @@ namespace chebwa.LospNet
 {
 	public interface IScriptOperator
 	{
+		/// <summary>
+		/// Called during evaluation and must be handled by the <see cref="IScriptOperator"/>
+		/// to provide the result of performing the operator on the arguments provided
+		/// in the collection of <paramref name="children"/>. 
+		/// </summary>
+		/// <param name="context">The context that can be used to get and set variables.</param>
+		/// <param name="op">The AST node that represents this operator.</param>
+		/// <param name="children">The child values that represent the evaluated
+		/// arguments to this operator.</param>
+		/// <returns>An <see cref="EvalResult"/> that indicates the result of the
+		/// operator. A <see cref="ValueResult"/> represents a successful operation (with
+		/// or without return values); a <see cref="ErrorResult"/> represents some error
+		/// in performing the operation; an <see cref="AsyncResult"/> represents a result
+		/// that is pending; a <see cref="PushResult"/> is used (mostly from
+		/// <see cref="ISpecialOperator"/>s) to require the evaluator to evaluate more
+		/// nodes as part of the operation.</returns>
 		EvalResult Run(IScriptContext context, LospOperatorNode op, LospChildResultDataCollection children);
 	}
 	public interface ISpecialOperator : IScriptOperator
@@ -49,7 +65,29 @@ namespace chebwa.LospNet
 
 	public interface IScriptContext
 	{
+		/// <summary>
+		/// Attempts to retrieve a variable by its string identifier. All current scopes
+		/// are evaluated, from most local to least.
+		/// </summary>
+		/// <param name="varName">The identifier of the variable.</param>
+		/// <param name="value">The value of the variable, if the variable was found.</param>
+		/// <returns>A value that indicates whether the variable was found and
+		/// its value provided.</returns>
 		bool TryGetVar(string varName, [NotNullWhen(true)] out LospValue? value);
+		/// <summary>
+		/// <para>
+		/// Stores the <paramref name="value"/> in a variable with the <paramref name="varName"/>
+		/// identifier. If the variable exists in the most local scope, the value is
+		/// replaced.
+		/// </para>
+		/// <para>
+		/// If the variable exists but in a less local scope, a locally scoped variable
+		/// is created that shadows the less local variable. When the current scope is
+		/// exited, the existing variable will still have its previous value.
+		/// </para>
+		/// </summary>
+		/// <param name="varName">The identifier of the variable.</param>
+		/// <param name="value">The value of the variable.</param>
 		void SetVar(string varName, LospValue value);
 	}
 

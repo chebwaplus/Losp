@@ -57,6 +57,9 @@ namespace chebwa.LospNet
 	/// </summary>
 	public interface IScriptObject
 	{
+		/// <summary>
+		/// The collection of all keys provided by this object.
+		/// </summary>
 		IEnumerable<string> Keys { get; }
 		/// <summary>
 		/// <para>
